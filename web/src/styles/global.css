@@ -142,6 +142,8 @@ body {
 /* 深海底上的内容面板:除了海洋主题的首页,其余页面统一装进浅色磨砂圆角面板,
  * 保证表格/表单的可读性,同时四周仍是同一片海 */
 .app-main .page:not(.ocean) {
+  margin-left: auto; /* 页面面板在容器内水平居中,宽屏不再整体偏左 */
+  margin-right: auto;
   background: rgba(255, 255, 255, 0.93);
   border: 1px solid rgba(63, 208, 232, 0.25);
   border-radius: var(--r-lg);
@@ -1259,6 +1261,8 @@ textarea.q-input {
 .home-page.ocean {
   position: relative;
   overflow: hidden;
+  margin-left: auto; /* 同上:海洋面板也要居中 */
+  margin-right: auto;
   border-radius: var(--r-lg);
   border: 1px solid rgba(63, 208, 232, 0.35);
   background: linear-gradient(180deg, #04182a 0%, #06283f 45%, #0a3a56 100%);
@@ -1494,14 +1498,64 @@ textarea.q-input {
   border-radius: var(--r-sm);
 }
 
+/* ===== 按钮交互状态(AsyncButton:空闲/加载中/成功)===== */
+
+/* 转圈图标:纯 CSS,不引依赖;用 currentColor 自动适配按钮文字色 */
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-right: var(--sp-2);
+  animation: btn-spin 0.7s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 加载中:整体变淡 + 禁用光标,连点无效(disabled 已兜底) */
+.async-loading {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* 成功:短暂变绿,1.2s 后由调用方复位 */
+.async-success {
+  background: #2e7d32 !important;
+  border-color: #2e7d32 !important;
+  color: #ffffff !important;
+  opacity: 1;
+}
+
+/* 绿色结果条:与红色 form-alert 同款节奏,role=status 读屏可感知 */
+.ok-bar {
+  background: var(--ok-bg);
+  border: 1px solid #a5d6a7;
+  color: var(--ok-ink);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-3);
+}
+
 /* 尊重系统"减少动态效果"设置 */
 @media (prefers-reduced-motion: reduce) {
   .fish,
   .bubble,
   .sea-fish,
   .sea-bubble,
-  .sea-weed {
+  .sea-weed,
+  .btn-spinner {
     animation: none;
+  }
+  .btn-spinner {
+    border-top-color: currentColor; /* 不转圈时显示为完整圆环,仍是可见的"处理中"符号 */
   }
   .fish {
     position: absolute;

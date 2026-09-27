@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchCampName, submitStudent } from '../api/students.js'
+import AsyncButton from '../components/AsyncButton.jsx'
 
 const TEACHERS = ['Mona', 'Kiven', 'Selena', 'Betty', 'Priya']
 const CLASSES = ['星一', '星二', '星三']
@@ -251,9 +252,13 @@ export default function StudentForm() {
           />
         </div>
 
-        <button className="btn-primary btn-submit" type="submit" disabled={status === 'submitting'}>
-          {status === 'submitting' ? '提交中…' : '提交'}
-        </button>
+        <AsyncButton
+          type="submit"
+          className="btn-primary btn-submit"
+          status={status === 'submitting' ? 'loading' : 'idle'}
+          idle="提交"
+          loading="提交中…"
+        />
         <p className="q-hint">填错了没关系,重新打开链接再提交一次,系统按最新一次为准。</p>
       </form>
     </section>

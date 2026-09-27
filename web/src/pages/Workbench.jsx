@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { runAssignment } from '../../../shared/assignEngine.js'
+import AsyncButton from '../components/AsyncButton.jsx'
 import {
   loadWorkbenchData,
   addRoom,
@@ -56,7 +57,9 @@ export default function Workbench() {
   const [isMock, setIsMock] = useState(false)
   const [loading, setLoading] = useState(true)
   const [alert, setAlert] = useState('') // 红色警告(违反红线/超员/操作失败)
+  const [ok, setOk] = useState('') // 绿色反馈(操作成功的人话说明)
   const [busy, setBusy] = useState('') // 正在分房… / 保存中…
+  const [aiStatus, setAiStatus] = useState('idle') // 一键分房按钮: idle | loading | success
   const [dropTarget, setDropTarget] = useState(null) // {roomId|null, ok:bool}
   const [newRoom, setNewRoom] = useState({ room_no: '', capacity: '' })
   const [addingRoom, setAddingRoom] = useState(false)
@@ -103,8 +106,20 @@ export default function Workbench() {
     flash._t = window.setTimeout(() => setAlert(''), 4000)
   }
 
+  // 绿色成功反馈:与红色警告同款节奏,3 秒后自动消失
+  function okFlash(msg) {
+    setOk(msg)
+    window.clearTimeout(okFlash._t)
+    okFlash._t = window.setTimeout(() => setOk(''), 3000)
+  }
+
   // ===== AI 分房 =====
   async function runAI({ clearAll }) {
+    if (rooms.length === 0) {
+      // 失败路径:真实校验,人话提示,按钮回空闲可重试
+      flash(clearAll ? '还没有房间:先在右侧「添加房间」,再重新分房' : '请先添加房间,再点一键 AI 分房')
+      return
+    }
     const pool = clearAll
       ? students
       : unassigned // 一键分房:只分未分配的;重新分房:全部推倒重算
@@ -113,6 +128,7 @@ export default function Workbench() {
       return
     }
     setBusy(clearAll ? '正在重新分房…' : '正在分房…')
+    if (!clearAll) setAiStatus('loading') // 重新分房走 confirm 弹窗,不占用主按钮状态
     try {
       if (clearAll) {
         // 全部推倒:先清空所有人的分配
@@ -124,11 +140,22 @@ export default function Workbench() {
       await saveHistorySnapshot({ assignments, unassigned: failed, at: new Date().toISOString() })
       await load()
       setBusy('')
+      if (!clearAll) {
+        // 成功:按钮短暂显示「完成 ✓」,绿条给结果摘要,1.2s 后按钮回空闲
+        setAiStatus('success')
+        window.setTimeout(() => setAiStatus('idle'), 1200)
+        okFlash(
+          failed.length > 0
+            ? `AI 分房完成:${assignments.length} 人已分配,${failed.length} 人分不进,名单见下方红条说明`
+            : `AI 分房完成:${assignments.length} 人已全部入房`,
+        )
+      }
       if (failed.length > 0) {
-        flash(`AI 分房完成:${assignments.length} 人已分配,${failed.length} 人分不进(${failed.map((f) => f.name).join('、')})`)
+        flash(`这 ${failed.length} 人分不进任何房间(${failed.map((f) => f.name).join('、')}),可手动拖拽安排`)
       }
     } catch (err) {
       setBusy('')
+      setAiStatus('idle') // 失败:按钮回空闲,错误原因由 flash 红条说明
       flash(err.message)
     }
   }
@@ -297,21 +324,32 @@ export default function Workbench() {
           )}
         </div>
         <div className="wb-actions">
-          <button className="btn-primary wb-btn" onClick={() => runAI({ clearAll: false })} disabled={!!busy}>
-            一键 AI 分房
-          </button>
+          <AsyncButton
+            className="btn-primary wb-btn"
+            status={aiStatus}
+            idle="一键 AI 分房"
+            loading="分房中…"
+            success="完成 ✓"
+            onClick={() => runAI({ clearAll: false })}
+            disabled={!!busy}
+          />
           <button className="btn-plain" onClick={() => {
             if (window.confirm('将清空当前分配,用新方案替换。确定重新分房?')) runAI({ clearAll: true })
-          }} disabled={!!busy}>
+          }} disabled={!!busy || aiStatus !== 'idle'}>
             重新分房
           </button>
-          <button className="btn-plain" onClick={restoreAI} disabled={!!busy}>
+          <button className="btn-plain" onClick={restoreAI} disabled={!!busy || aiStatus !== 'idle'}>
             恢复 AI 方案
           </button>
         </div>
       </header>
 
       {busy && <div className="wb-busy">{busy}</div>}
+      {ok && (
+        <div className="ok-bar" role="status">
+          {ok}
+        </div>
+      )}
       {alert && (
         <div className="form-alert" role="alert">
           {alert}
