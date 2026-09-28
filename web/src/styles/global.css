@@ -842,6 +842,48 @@ textarea.q-input {
   padding: 2px 0;
 }
 
+/* Day 12: 未分配学生筛选条(姓名/性别/班级),样式沿用海洋主题既有变量 */
+.wb-filter {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+
+.wb-filter .q-input {
+  width: auto;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-sm);
+}
+
+.wb-filter input.q-input {
+  flex: 1;
+}
+
+.wb-filter select.q-input {
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.wb-filter-count {
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  margin-bottom: var(--sp-2);
+}
+
+.wb-filter-none {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  border: 1px dashed var(--line-ctrl);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  margin-bottom: var(--sp-2);
+}
+
 .wb-hint {
   font-size: var(--fs-xs);
   color: var(--ink-3);

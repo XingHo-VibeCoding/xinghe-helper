@@ -65,6 +65,8 @@ export default function Workbench() {
   const [addingRoom, setAddingRoom] = useState(false)
   const [editingRoomId, setEditingRoomId] = useState(null)
   const [editDraft, setEditDraft] = useState({})
+  // Day 12: 未分配学生筛选(姓名/性别/班级)。规则依据 .workbuddy/skills/frontend-interaction-checklist
+  const [filter, setFilter] = useState({ keyword: '', gender: '全部', classLevel: '全部' })
 
   async function load() {
     try {
@@ -87,13 +89,30 @@ export default function Workbench() {
     () => students.filter((s) => !s.assigned_room_id),
     [students],
   )
-  const unassignedByGender = useMemo(
+
+  // ===== 筛选三态(有结果/无结果/清空恢复),对照 frontend-interaction-checklist 实现 =====
+  const isFiltering =
+    filter.keyword.trim() !== '' || filter.gender !== '全部' || filter.classLevel !== '全部'
+  const filteredUnassigned = useMemo(() => {
+    const kw = filter.keyword.trim().toLowerCase()
+    return unassigned.filter(
+      (s) =>
+        (filter.gender === '全部' || s.gender === filter.gender) &&
+        (filter.classLevel === '全部' || s.class_level === filter.classLevel) &&
+        (kw === '' || s.name.toLowerCase().includes(kw)),
+    )
+  }, [unassigned, filter])
+  const shownByGender = useMemo(
     () => ({
-      男: unassigned.filter((s) => s.gender === '男'),
-      女: unassigned.filter((s) => s.gender === '女'),
+      男: filteredUnassigned.filter((s) => s.gender === '男'),
+      女: filteredUnassigned.filter((s) => s.gender === '女'),
     }),
-    [unassigned],
+    [filteredUnassigned],
   )
+  // 清空恢复:一键回到初始三项条件,列表随之回到全量
+  function clearFilter() {
+    setFilter({ keyword: '', gender: '全部', classLevel: '全部' })
+  }
   const stats = {
     total: students.length,
     assigned: students.length - unassigned.length,
@@ -371,19 +390,68 @@ export default function Workbench() {
           onDrop={dropToUnassigned}
         >
           <h2 className="wb-sub">未分配学生</h2>
-          {['男', '女'].map((g) => (
-            <div className="wb-gender-group" key={g}>
-              <div className="wb-gender-title">
-                {g}生 <span className="wb-count">{unassignedByGender[g].length} 人</span>
-              </div>
-              {unassignedByGender[g].length === 0 && (
-                <p className="wb-none">暂无</p>
-              )}
-              {unassignedByGender[g].map((s) => (
-                <StudentChip key={s.id} s={s} />
-              ))}
+          {/* Day 12: 筛选条(姓名/性别/班级)。有结果→计数反馈;无结果→提示+清空入口;清空→一键恢复全量 */}
+          <div className="wb-filter">
+            <input
+              className="q-input"
+              placeholder="搜姓名…"
+              value={filter.keyword}
+              onChange={(e) => setFilter((f) => ({ ...f, keyword: e.target.value }))}
+            />
+            <select
+              className="q-input"
+              aria-label="按性别筛选"
+              value={filter.gender}
+              onChange={(e) => setFilter((f) => ({ ...f, gender: e.target.value }))}
+            >
+              <option>全部</option>
+              <option>男</option>
+              <option>女</option>
+            </select>
+            <select
+              className="q-input"
+              aria-label="按班级筛选"
+              value={filter.classLevel}
+              onChange={(e) => setFilter((f) => ({ ...f, classLevel: e.target.value }))}
+            >
+              <option>全部</option>
+              <option>星一</option>
+              <option>星二</option>
+              <option>星三</option>
+            </select>
+            {isFiltering && (
+              <button className="btn-mini" onClick={clearFilter}>
+                清空
+              </button>
+            )}
+          </div>
+          {isFiltering && (
+            <div className="wb-filter-count" role="status">
+              筛出 {filteredUnassigned.length}/{unassigned.length} 人
             </div>
-          ))}
+          )}
+          {['男', '女']
+            .filter((g) => filter.gender === '全部' || filter.gender === g)
+            .map((g) => (
+              <div className="wb-gender-group" key={g}>
+                <div className="wb-gender-title">
+                  {g}生 <span className="wb-count">{shownByGender[g].length} 人</span>
+                </div>
+                {shownByGender[g].length === 0 && <p className="wb-none">暂无</p>}
+                {shownByGender[g].map((s) => (
+                  <StudentChip key={s.id} s={s} />
+                ))}
+              </div>
+            ))}
+          {isFiltering && filteredUnassigned.length === 0 && (
+            <div className="wb-filter-none">
+              没有匹配的学生,换换条件,或者
+              <button className="btn-mini" onClick={clearFilter}>
+                清空筛选
+              </button>
+              回到全部
+            </div>
+          )}
           <p className="wb-hint">把学生拖到右边房间即可分配;拖回这里则移出房间。</p>
         </aside>
 
