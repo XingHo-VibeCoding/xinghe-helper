@@ -55,6 +55,7 @@ export default function Overview() {
 
   async function load() {
     try {
+      setError('')
       const d = await loadWorkbenchData()
       setStudents(d.students)
       setRooms(d.rooms)
@@ -63,6 +64,12 @@ export default function Overview() {
     } finally {
       setLoading(false)
     }
+  }
+  // 失败后点「重试」:回到加载态重新拉数据
+  function retry() {
+    setLoading(true)
+    setError('')
+    load()
   }
   useEffect(() => {
     load()
@@ -137,7 +144,13 @@ export default function Overview() {
   if (error)
     return (
       <section className="page">
-        <div className="form-alert" role="alert">{error}</div>
+        <div className="wb-empty state-error" role="alert">
+          <p>名单加载失败:可能是网络断开,或服务暂时不可用。</p>
+          <p className="state-error-detail">{error}</p>
+          <button className="btn-primary wb-btn" onClick={retry}>
+            重试
+          </button>
+        </div>
       </section>
     )
 

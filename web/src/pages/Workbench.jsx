@@ -56,6 +56,7 @@ export default function Workbench() {
   const [rooms, setRooms] = useState([])
   const [isMock, setIsMock] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('') // 首次加载失败:单独状态,不与操作警告混用
   const [alert, setAlert] = useState('') // 红色警告(违反红线/超员/操作失败)
   const [ok, setOk] = useState('') // 绿色反馈(操作成功的人话说明)
   const [busy, setBusy] = useState('') // 正在分房… / 保存中…
@@ -70,15 +71,23 @@ export default function Workbench() {
 
   async function load() {
     try {
+      setLoadError('')
       const { students, rooms, isMock } = await loadWorkbenchData()
       setStudents(students)
       setRooms(rooms)
       setIsMock(!!isMock)
     } catch (err) {
-      setAlert(err.message)
+      setLoadError(err.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  // 失败后点「重试」:回到加载态重新拉数据
+  function retry() {
+    setLoading(true)
+    setLoadError('')
+    load()
   }
 
   useEffect(() => {
@@ -330,6 +339,18 @@ export default function Workbench() {
   }
 
   if (loading) return <section className="page"><p className="placeholder-note">加载中…</p></section>
+  if (loadError)
+    return (
+      <section className="page">
+        <div className="wb-empty state-error" role="alert">
+          <p>工作台加载失败:可能是网络断开,或服务暂时不可用。</p>
+          <p className="state-error-detail">{loadError}</p>
+          <button className="btn-primary wb-btn" onClick={retry}>
+            重试
+          </button>
+        </div>
+      </section>
+    )
 
   return (
     <section className="page wb-page">
