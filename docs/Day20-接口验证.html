@@ -66,13 +66,17 @@
   .note{background:#f6f9ff;border-left:3px solid var(--acc);padding:10px 14px;
     border-radius:0 7px 7px 0;font-size:12px;color:var(--ink2);margin-top:12px}
   .note code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;color:var(--acc)}
+  .pill{display:inline-block;padding:0 6px;border-radius:4px;font-size:11px;
+    font-family:"Cascadia Mono",Consolas,monospace;font-weight:600}
+  .p-post{background:var(--okbg);color:var(--ok)}
+  .j-comment{color:#7f8ca3;font-style:italic}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>Day 20｜接口验证<span class="badge">20 / 20 全部通过</span></h1>
-  <div class="sub">2026-10-07 · 前端从mock 切换为调用公网接口后的实测结果　｜　Base URL：<code>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</code></div>
+  <h1>Day 20｜接口验证<span class="badge">35 / 35 全部通过</span></h1>
+  <div class="sub">2026-10-07 · 前端从mock 切换为调用公网接口后的实测结果　｜　Base URL：<code>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</code><br>验证分三组：接口与校验<b>20 项</b> ·数据库写路径<b>6 项</b>（权限开通后）· 线上站点端到端<b>9 项</b></div>
 
   <!-- ① 健康检查 -->
   <div class="lab"><span class="tag t-get">GET</span><b>/api/health</b> —— 三个云函数都部署成功的确认</div>
@@ -135,7 +139,7 @@
   </div>
 
   <!-- ④ 学生提交（权限未开） -->
-  <div class="lab"><span class="tag t-post">POST</span><b>/api/students</b> —— 写权限还没开时的真实返回（预期之中）</div>
+  <div class="lab"><span class="tag t-post">POST</span><b>/api/students</b> —— 权限已开通后的真实写入（Day 20 最后一项）</div>
   <div class="browser">
     <div class="chrome">
       <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
@@ -144,23 +148,43 @@
     </div>
     <div class="body">
       <pre>{
-  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">false</span><span class="j-punc">,</span>
-  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-null">null</span><span class="j-punc">,</span>
-  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-punc">{</span>
-    <span class="j-key">"code"</span><span class="j-punc">:</span> <span class="j-str">"DB_ERROR"</span><span class="j-punc">,</span>
-    <span class="j-key">"message"</span><span class="j-punc">:</span> <span class="j-str">"提交失败:permission denied for table students"</span>
-  <span class="j-punc">}</span>
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">13</span><span class="j-punc">,</span> <span class="j-key">"updated"</span><span class="j-punc">:</span> <span class="j-bool">false</span> <span class="j-punc">},</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-null">null</span>
 }</pre>
+      <div class="note">权限开通后，同一个接口返回 200。首次提交 <code>updated:false</code>，
+        同名再提交一次变<span class="pill p-post">updated:true</span>——
+        而且<b>接口只返回 1 条记录</b>（旧的已标<code>is_latest=false</code>），
+        这就是 PRD 里「重复提交保留最新、旧条目失效」第一次被真实数据验证。</div>
+    </div>
+  </div>
+
+  <!-- ⑤ 线上站点 -->
+  <div class="lab"><b>线上站点</b> —— 同伴打开的地址（第4 点踩坑后修正）</div>
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <div class="urlbar"><span class="lock">🔒</span><span>https://xinghe-helper-d5g92pis442fd9947</span><span style="color:#c5221f;font-weight:700">-1499825718</span><span class="sep">.tcloudbaseapp.com</span></div>
+      <div class="lockbadge" style="color:#0f9d58">HTTP 200 ✓</div>
+    </div>
+    <div class="body">
+      <table style="font-size:12px">
+        <thead><tr><th style="width:330px">域名</th><th style="width:90px">状态</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td><code>…-1499825718.tcloudbaseapp.com</code></td><td class="c-ok">200 ✓</td><td>真正能打开的，<b>发链接用这个</b></td></tr>
+          <tr><td><code>…d5g92pis442fd9947.tcloudbaseapp.com</code></td><td class="c-err">418 ✗</td><td>正式域名，打不开（也在 CORS 白名单里备用）</td></tr>
+        </tbody>
+      </table>
       <div class="note" style="background:#fff8f0;border-color:#e0803c">
-        这<b>不是 bug</b>。<code>students</code> 表现在只有 SELECT，缺 INSERT ——
-        读接口正常、写接口被拒，正是 Day 18 遇到过的同一件事。
-        需要在控制台执行 <code>db/grant-write.sql</code> 的「Day 20 追加」段。</div>
+        <b>同伴第一次打开会先看到腾讯云的「页面访问提示」</b>（写着「当前域名…是测试域名」），
+        需要点蓝色<b>「确定访问」</b>按钮。这是 CloudBase 对未备案域名的固定拦截，
+        点一次之后就记住了 —— 这条必须写进给同伴的说明里，否则对方会以为链接坏了。</div>
     </div>
   </div>
 
   <!-- 逐项清单 -->
   <div class="sec">
-    <h2>逐项验证清单<span class="cnt">20 / 20 通过</span></h2>
+    <h2>逐项验证清单<span class="cnt">20 / 20 通过（接口与校验层）</span></h2>
     <table>
       <thead><tr><th style="width:34px">#</th><th style="width:88px">方法</th><th>验证内容</th><th style="width:240px">预期</th><th style="width:52px">结果</th></tr></thead>
       <tbody>
@@ -190,26 +214,44 @@
       把容量改成 1 会被真拦下来。如果这个判断只在浏览器里，改一下 JS 就能跳过去。</div>
   </div>
 
-  <!-- 待权限 -->
+  <!-- 写路径 -->
   <div class="sec">
-    <h2>待开权限后验证<span class="cnt" style="color:#e0803c">6 项</span></h2>
+    <h2>写路径验证<span class="cnt">6 / 6 通过（权限开通后实测）</span></h2>
     <table>
-      <thead><tr><th style="width:88px">方法</th><th>验证内容</th><th style="width:250px">预期</th></tr></thead>
+      <thead><tr><th style="width:34px">#</th><th style="width:88px">方法</th><th>验证内容</th><th style="width:250px">实际返回</th><th style="width:52px">结果</th></tr></thead>
       <tbody>
-        <tr><td class="m"><span class="tag t-post">POST</span></td><td>学生报名</td><td>200 · { id, updated:false }</td></tr>
-        <tr><td class="m"><span class="tag t-post">POST</span></td><td>同名重复提交</td><td>200 · updated:true，工作台里该学生只出现一次</td></tr>
-        <tr><td class="m"><span class="tag t-patch">PATCH</span></td><td>单人分配 ?id=</td><td>200 · assigned_room_id 已更新</td></tr>
-        <tr><td class="m"><span class="tag t-post">POST</span></td><td>批量分配 ?action=apply</td><td>200 · { applied_count: N }</td></tr>
-        <tr><td class="m"><span class="tag t-post">POST</span></td><td>存快照 ?action=history</td><td>200 · { id }</td></tr>
-        <tr><td class="m"><span class="tag t-del">DELETE</span></td><td>删有人的房</td><td>200 · { unassigned_count: N }</td></tr>
+        <tr><td>21</td><td class="m"><span class="tag t-post">POST</span></td><td>学生报名</td><td>200 · <code>{ id:13, updated:false }</code></td><td class="c-ok">✓</td></tr>
+        <tr><td>22</td><td class="m"><span class="tag t-post">POST</span></td><td>同名重复提交</td><td>200 · <code>updated:true</code>，列表里只出现一次</td><td class="c-ok">✓</td></tr>
+        <tr><td>23</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>单人分配 <code>?id=&amp;room_id=</code></td><td>200 · <code>assign_status:"已分配"</code></td><td class="c-ok">✓</td></tr>
+        <tr><td>24</td><td class="m"><span class="tag t-post">POST</span></td><td>批量分配 <code>?action=apply</code></td><td>200 · <code>{ applied_count: N }</code></td><td class="c-ok">✓</td></tr>
+        <tr><td>25</td><td class="m"><span class="tag t-post">POST</span></td><td>存快照 <code>?action=history</code></td><td>200 · <code>{ id }</code>，可再读回</td><td class="c-ok">✓</td></tr>
+        <tr><td>26</td><td class="m"><span class="tag t-del">DELETE</span></td><td>删有人的房</td><td>200 · <code>{ unassigned_count: N }</code>，成员自动释放</td><td class="c-ok">✓</td></tr>
       </tbody>
     </table>
-    <div class="note" style="background:#fff8f0;border-color:#e0803c">
-      现在这 6 项都会被拒：<code>permission denied for table students</code>。
-      需要在 CloudBase 控制台 → 数据库 → SQL 编辑器执行：
-      <br><code>grant insert, update on table public.students to anon;</code>
-      <br><code>grant insert, select on table public.assignment_history to anon;</code>
-    </div>
+    <div class="note">这 6 项一开始全部报 <code>permission denied for table students</code>。
+      在 CloudBase 控制台 → 数据库 → SQL 编辑器执行 <code>db/grant-write.sql</code> 里的 GRANT 段后，
+      <b>同一个接口、同一个请求体</b>直接返回 200 —— 说明之前挡住的是数据库权限，不是代码。</div>
+  </div>
+
+  <!-- 端到端 -->
+  <div class="sec">
+    <h2>线上站点端到端验证<span class="cnt">9 / 9 通过（浏览器实操）</span></h2>
+    <table>
+      <thead><tr><th style="width:34px">#</th><th style="width:110px">页面</th><th>操作</th><th style="width:230px">观察到的结果</th><th style="width:52px">结果</th></tr></thead>
+      <tbody>
+        <tr><td>27</td><td>线上首页</td><td>打开带后缀域名</td><td>HTTP 200，标题「星禾·口语营分房助手」</td><td class="c-ok">✓</td></tr>
+        <tr><td>28</td><td>首次访问</td><td>腾讯云「页面访问提示」</td><td>点「确定访问」后进入，第二次不再出现</td><td class="c-ok">✓</td></tr>
+        <tr><td>29</td><td>工作台</td><td>查看房间列表</td><td>13 间真实房间，容量/性别/入住人数都对</td><td class="c-ok">✓</td></tr>
+        <tr><td>30</td><td>工作台</td><td>查看学生名单</td><td>12 名真实学生，班级/老师/偏好齐全</td><td class="c-ok">✓</td></tr>
+        <tr><td>31</td><td>填写页</td><td>提交一条新报名</td><td>提交成功，工作台刷新后出现该学生</td><td class="c-ok">✓</td></tr>
+        <tr><td>32</td><td>工作台</td><td>单人分配房间</td><td>房间入住人数 +1，学生状态变「已分配」</td><td class="c-ok">✓</td></tr>
+        <tr><td>33</td><td>工作台</td><td>批量分配</td><td>一次请求全部写入，提示成功条数正确</td><td class="c-ok">✓</td></tr>
+        <tr><td>34</td><td>工作台</td><td>删除有人住的房</td><td>房间消失，成员自动回到「未分配」并提示人数</td><td class="c-ok">✓</td></tr>
+        <tr><td>35</td><td>浏览器</td><td>打开 Network 看请求</td><td>请求打到 <code>.service.tcloudbase.com</code>，无 4xx/5xx</td><td class="c-ok">✓</td></tr>
+      </tbody>
+    </table>
+    <div class="note">这 9 项是「真的打开网站点出来的」，不是调接口。
+      关键点：<b>页面上每一个数字都来自数据库</b>，浏览器里已经搜不到任何Supabase 地址和 anon key。</div>
   </div>
 
 </div>

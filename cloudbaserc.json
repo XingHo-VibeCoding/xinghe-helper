@@ -11,7 +11,7 @@
       "installDependency": true,
       "envVariables": {
         "PG_SCHEMA": "public",
-        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
+        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,https://xinghe-helper-d5g92pis442fd9947-1499825718.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
       }
     },
     {
@@ -22,7 +22,7 @@
       "installDependency": true,
       "envVariables": {
         "PG_SCHEMA": "public",
-        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
+        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,https://xinghe-helper-d5g92pis442fd9947-1499825718.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
       }
     },
     {
@@ -30,7 +30,10 @@
       "runtime": "Nodejs20.19",
       "handler": "index.main",
       "timeout": 5,
-      "installDependency": false
+      "installDependency": false,
+      "envVariables": {
+        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,https://xinghe-helper-d5g92pis442fd9947-1499825718.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
+      }
     }
   ]
 }

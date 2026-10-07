@@ -21,10 +21,26 @@
 //   ⚠️ 默认值里的域名是「本项目静态托管域名」。换环境时要改这里或设环境变量。
 
 // 默认白名单：
-//   · https://xxx.tcloudbaseapp.com —— 静态托管站点（生产）
-//   · http://localhost:5173            —— vite dev server（本地开发）
+//   · https://xinghe-helper-...tcloudbaseapp.com            —— 静态托管站点
+//   · https://xinghe-helper-...-1499825718.tcloudbaseapp.com —— 实际生效的托管域名
+//   · http://localhost:5173 / http://127.0.0.1:5173           —— vite dev server
+//
+//⚠️ 两个实测踩到的平台行为（换环境时务必重新验证）：
+//
+//   1) 静态托管有两个域名，正式域名和带数字后缀的那个。
+//      实测正式域名（…d5g92pis442fd9947.tcloudbaseapp.com）返回 HTTP 418，
+//      真正能打开的是带后缀的（…-1499825718.tcloudbaseapp.com）。
+//      CloudBase 会把托管域名自动加进 CORS 白名单，但**代码里也要显式写上**，
+//      别依赖这个自动行为 —— 平台升级或换环境时它不一定还有效。
+//
+//   2) CloudBase 网关对 localhost / 127.0.0.1 的**任意端口**都会回显
+//      Access-Control-Allow-Origin，白名单里没写的端口也一样有。
+//      这不影响生产（生产站点不是本地主机），
+//      但要知道：本地开发时「有 CORS 头」不能证明白名单配置正确了。
+//      判断白名单是否真的生效，要用**非本地**的域名做对照测试。
 const DEFAULT_ORIGINS = [
   'https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com',
+  'https://xinghe-helper-d5g92pis442fd9947-1499825718.tcloudbaseapp.com',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]
