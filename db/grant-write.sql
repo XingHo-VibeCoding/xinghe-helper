@@ -82,3 +82,81 @@ order by privilege_type;
 --     curl ".../api/rooms?camp_id=1"
 --     返回的 data 数组里应能看到 305，且按 room_no 升序
 -- ============================================================
+
+-- ============================================================
+-- Day 20 追加：students 与 assignment_history 的写权限
+-- ============================================================
+-- 【为什么现在才开】
+--   Day 18 只开了 rooms，因为那时只有 POST /api/rooms 需要写权限。
+--   Day 20 前端要从 mock 数据切到公网接口，表单提交(2.3)、批量分房(2.10)、
+--   存/读 AI 快照(2.11/2.12)全都要写库，于是必须补上。
+--
+-- 【逐条说明为什么需要】
+--   students：
+--     INSERT  —— 学生表单提交（契约 2.3）
+--     UPDATE  —— 标记同名旧提交失效（2.3）、单个分配（2.9）、
+--                批量分配（2.10）、删房时把成员放回未分配（2.8）
+--     SELECT  —— 学生列表（2.4，Day 16 已开，这里显式再确认一次）
+--   assignment_history：
+--     INSERT  —— 保存 AI 分房快照（2.11）
+--     SELECT  —— 读取最近一次快照（2.12）
+--
+-- 【⚠️ 安全提醒 · 这次比 Day 18 更敏感，请认真读完】
+--   Day 18 给 rooms 开 anon 写，风险是「别人能塞垃圾房间」，影响有限。
+--   这次给 students 开 anon 写，风险完全不同：
+--     任何拿到接口链接的人，都能往students 表塞假报名。
+--     如果将来这张表里是真实学生的姓名、性别、老师、入住日期，
+--     那这不光是数据脏，而是个人信息被公开写入、可被任意人读取。
+--   当前阶段（示例数据）可以接受。但下面这几件事必须在接入真实数据前做完：
+--     1. 收回本段 GRANT（执行下面的 REVOKE）。
+--     2. 改成登录态校验：只有带合法 token 的请求才允许写。
+--     3. 表里放示例数据，不要放真实学生的个人信息。
+--
+-- 【执行方式】
+--   控制台 → 云开发 → 数据库 → SQL 编辑器 → 全选本段 → 执行
+-- ============================================================
+
+
+-- ---------- 1. 先看清现状：anon 现在有哪些权限 ----------
+-- 预期：students 只有 SELECT；assignment_history 可能还没有任何权限
+select table_name, privilege_type
+from information_schema.role_table_grants
+where grantee = 'anon' and table_schema = 'public'
+order by table_name, privilege_type;
+
+
+-- ---------- 2. 补上权限（本段是要执行的） ----------
+-- students：学生提交 + 分房时的各种状态更新
+grant insert, update on table public.students to anon;
+grant select on table public.students to anon;
+
+-- assignment_history：AI 分房快照的写入与回看
+grant insert, select on table public.assignment_history to anon;
+
+-- 说明：students 不开 DELETE。
+--   契约里也没有「删除学生」这个接口 —— 重复提交是靠 is_latest 标记失效，
+--   不是物理删除。保留提交痕迹是为了能追溯谁改过信息。
+--   不需要的能力就不开权限，这是这份 SQL 一直遵守的原则。
+
+
+-- ---------- 3. 跑完验证：应该能看到这 5 种权限 ----------
+select table_name, privilege_type
+from information_schema.role_table_grants
+where grantee = 'anon' and table_schema = 'public'
+  and table_name in ('rooms', 'students', 'assignment_history')
+order by table_name, privilege_type;
+-- 预期输出：
+--   assignment_history  INSERT
+--   assignment_history  SELECT
+--   rooms               DELETE
+--   rooms               INSERT
+--   rooms               SELECT
+--   rooms               UPDATE
+--   studentsINSERT
+--   students            SELECT
+--   students            UPDATE
+
+
+-- ---------- 4. 接入真实学生数据前，收回写权限（到时候跑这段） ----------
+-- revoke insert, update on table public.students from anon;
+-- revoke insert on table public.assignment_history from anon;

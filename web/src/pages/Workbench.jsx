@@ -5,7 +5,6 @@ import {
   loadWorkbenchData,
   addRoom,
   updateRoom,
-  unassignStudentsOfRoom,
   deleteRoom,
   setStudentRoom,
   applyAssignments,
@@ -291,10 +290,18 @@ export default function Workbench() {
     if (!ok) return
     try {
       setBusy('删除中…')
-      await unassignStudentsOfRoom(room.id)
-      await deleteRoom(room.id)
+      // Day 20：删房是一个原子操作 —— 后端在同一个云函数里先把成员放回未分配、
+      // 再删房。以前这里是 unassignStudentsOfRoom() + deleteRoom() 两步，
+      // 中间失败会留下「房还在但人被清空」或「房没了人还挂着」的半套数据。
+      // 现在只调一次，unassigned_count 是这次被放回未分配的人数。
+      const res = await deleteRoom(room.id)
       await load()
       setBusy('')
+      flash(
+        res?.unassigned_count
+          ? `已删除 ${room.room_no} 房，${res.unassigned_count} 人已放回未分配`
+          : `已删除 ${room.room_no} 房`,
+      )
     } catch (err) {
       setBusy('')
       flash(err.message)

@@ -1,7 +1,7 @@
 {
   "name": "health",
   "version": "1.0.0",
-  "description": "xinghe-helper 健康检查云函数：返回服务在线状态",
+  "description": "xinghe-helper 健康检查云函数：返回服务在线状态（Day 20 起带 CORS 白名单）",
   "main": "index.js",
   "private": true,
   "dependencies": {}

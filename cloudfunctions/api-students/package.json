@@ -1,7 +1,7 @@
 {
   "name": "api-students",
   "version": "1.0.0",
-  "description": "xinghe-helper 接口：GET /api/students 读取学生列表",
+  "description": "xinghe-helper 接口：学生相关 7 个接口（列表/营期/报名/单人分配/批量分配/快照存取）",
   "main": "index.js",
   "private": true,
   "dependencies": {

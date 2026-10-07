@@ -1,7 +1,7 @@
 {
   "name": "api-rooms",
   "version": "1.0.0",
-  "description": "xinghe-helper 接口：GET /api/rooms 读取房间列表",
+  "description": "xinghe-helper 接口：房间相关 4 个接口（列表/新建/修改/删除）",
   "main": "index.js",
   "private": true,
   "dependencies": {

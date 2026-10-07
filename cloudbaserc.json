@@ -10,7 +10,8 @@
       "timeout": 10,
       "installDependency": true,
       "envVariables": {
-        "PG_SCHEMA": "public"
+        "PG_SCHEMA": "public",
+        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
       }
     },
     {
@@ -20,8 +21,16 @@
       "timeout": 10,
       "installDependency": true,
       "envVariables": {
-        "PG_SCHEMA": "public"
+        "PG_SCHEMA": "public",
+        "ALLOWED_ORIGINS": "https://xinghe-helper-d5g92pis442fd9947.tcloudbaseapp.com,http://localhost:5173,http://127.0.0.1:5173"
       }
+    },
+    {
+      "name": "health",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 5,
+      "installDependency": false
     }
   ]
 }

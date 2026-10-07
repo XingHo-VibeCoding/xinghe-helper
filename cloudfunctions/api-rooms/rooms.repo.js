@@ -101,9 +101,88 @@ async function create({ camp_id, room_no, capacity, gender_label }) {
   return { data, error }
 }
 
+// ============================================================
+// Day 20 新增：按 id 找房间 / 改房间 / 删房间
+// ============================================================
+
+// 查询：按 id 找一间房(改/删之前先确认它存在，且属于本次要操作的营期)
+async function findById(roomId, campId) {
+  const { data, error } = await db
+    .from('rooms')
+    .select('id, camp_id, room_no, capacity, gender_label')
+    .eq('id', roomId)
+    .eq('camp_id', campId)
+    .maybeSingle()
+
+  return { data, error }
+}
+
+// 查询：这间房里现在住着谁(删房前必须先把他们放回未分配)
+//   ⚠️ 不能跳过这步直接删 —— 否则 students.assigned_room_id 会指向一间不存在的房,
+//   页面再读就会出问题。这正是 Day 18 处理"房号重复"时用同一套思路的原因。
+async function findOccupants(roomId) {
+  const { data, error } = await db
+    .from('students')
+    .select('id, name, assign_status')
+    .eq('assigned_room_id', roomId)
+    .eq('is_latest', true)
+
+  return { data, error }
+}
+
+// 写入：把某间房里的成员全部放回「未分配」
+async function releaseOccupants(roomId) {
+  const { error } = await db
+    .from('students')
+    .update({ assigned_room_id: null, assign_status: '未分配' })
+    .eq('assigned_room_id', roomId)
+
+  return { error }
+}
+
+// 写入：修改房间(只改调用方明确传了的字段，没传的字段保持原样)
+//   用 patch 而不是整对象覆盖 —— 免得前端漏传某个字段就把已有数据抹成空。
+async function update(roomId, campId, patch) {
+  const allowed = {}
+  if (patch.room_no !== undefined) allowed.room_no = patch.room_no
+  if (patch.capacity !== undefined) allowed.capacity = patch.capacity
+  if (patch.gender_label !== undefined) allowed.gender_label = patch.gender_label
+
+  // 一个字段都没传：什么都不做，交给调用方返回「没有要改的内容」
+  if (Object.keys(allowed).length === 0) {
+    return { data: null, error: null, noop: true }
+  }
+
+  const { data, error } = await db
+    .from('rooms')
+    .update(allowed)
+    .eq('id', roomId)
+    .eq('camp_id', campId)
+    .select('id, room_no, capacity, gender_label')
+    .single()
+
+  return { data, error }
+}
+
+// 写入：删除房间
+async function remove(roomId, campId) {
+  const { error } = await db
+    .from('rooms')
+    .delete()
+    .eq('id', roomId)
+    .eq('camp_id', campId)
+
+  return { error }
+}
+
 module.exports = {
   findByCamp,
   findCampById,
   findByRoomNo,
   create,
+  findById,
+  findOccupants,
+  releaseOccupants,
+  update,
+  remove,
 }
