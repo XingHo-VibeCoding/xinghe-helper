@@ -30,6 +30,13 @@ function sleepConflict(members) {
   return snorers > 0 && light > 0
 }
 
+// Day 20 余力加练:把「几点几分拉的」格式化成人能一眼看懂的 HH:MM:SS
+function formatClock(d) {
+  if (!d) return ''
+  const p = (n) => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
 function StudentChip({ s, onDragStart }) {
   return (
     <div
@@ -67,6 +74,8 @@ export default function Workbench() {
   const [editDraft, setEditDraft] = useState({})
   // Day 12: 未分配学生筛选(姓名/性别/班级)。规则依据 .workbuddy/skills/frontend-interaction-checklist
   const [filter, setFilter] = useState({ keyword: '', gender: '全部', classLevel: '全部' })
+  // Day 20 余力加练:最近一次成功拉数据的本地时间
+  const [lastLoadedAt, setLastLoadedAt] = useState(null)
 
   async function load() {
     try {
@@ -75,6 +84,9 @@ export default function Workbench() {
       setStudents(students)
       setRooms(rooms)
       setIsMock(!!isMock)
+      // Day 20 余力加练:数据成功落地的那一刻记下来。
+      // 「刷新一下就变」是 Day 20 的完成标准之一,页面上要能自己证明这一点。
+      setLastLoadedAt(new Date())
     } catch (err) {
       setLoadError(err.message)
     } finally {
@@ -370,6 +382,10 @@ export default function Workbench() {
             <span className="wb-stats-warn">· 未分配 {stats.unassigned} 人</span>
           )}
         </div>
+        {/* Day 20 余力加练:在控制台改数据后点刷新,这里的时间会跟着变,肉眼可验证「数据真的重新拉了」 */}
+        <span className="wb-updated" title="这是页面最近一次成功拿到数据库数据的时间">
+          最后更新 {formatClock(lastLoadedAt)}
+        </span>
         <div className="wb-actions">
           <AsyncButton
             className="btn-primary wb-btn"

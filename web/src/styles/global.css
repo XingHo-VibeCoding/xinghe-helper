@@ -690,6 +690,18 @@ textarea.q-input {
   font-weight: 600;
 }
 
+/* Day 20 余力加练:「最后更新时间」。中性灰,不抢警告色。 */
+.wb-updated {
+  font-size: var(--fs-xs);
+  color: var(--ink-2);
+  background: #f0f0f0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* flex-wrap:窄屏放下就换行,不再横向撑破页面 */
 .wb-actions {
   display: flex;
