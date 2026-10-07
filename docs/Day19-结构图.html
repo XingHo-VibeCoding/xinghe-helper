@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>xinghe-helper 目录结构 · Day 19 分层重构</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 36px 40px;
+    background: #0d1b2a;
+    font-family: "Cascadia Code", Consolas, "Courier New", monospace;
+    color: #e0e6ed;
+  }
+  .title { font-size: 21px; font-weight: 700; color: #4fc3f7; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #8fa3b8; margin-bottom: 26px; }
+
+  .tree { font-size: 14px; line-height: 1.85; }
+  .tree .dir  { color: #ffd166; font-weight: 600; }
+  .tree .file { color: #c9d6e3; }
+  .tree .new  { color: #06d6a0; font-weight: 700; background: rgba(6,214,160,.13);
+                padding: 2px 8px; border-radius: 4px; border-left: 3px solid #06d6a0; }
+  .tree .chg  { color: #ff9f43; }
+  .tree .line { color: #4a6076; }
+  .tree .cmt  { color: #6b8299; font-size: 13px; }
+
+  .cards { display: flex; gap: 16px; margin-top: 30px; }
+  .card {
+    flex: 1; background: #16283d; border: 1px solid #23405c;
+    border-radius: 10px; padding: 18px 20px;
+  }
+  .card h3 { margin: 0 0 12px; font-size: 14px; color: #4fc3f7; }
+  .layer { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 13px; }
+  .badge {
+    flex-shrink: 0; width: 74px; text-align: center;
+    padding: 3px 0; border-radius: 5px; font-size: 12px; font-weight: 700;
+  }
+  .b-if { background: rgba(79,195,247,.16); color: #4fc3f7; }
+  .b-repo { background: rgba(6,214,160,.16); color: #06d6a0; }
+  .b-db { background: rgba(255,209,102,.16); color: #ffd166; }
+  .b-resp { background: rgba(255,159,67,.16); color: #ff9f43; }
+  .layer .desc { font-size: 12.5px; line-height: 1.6; color: #b8c8d8; }
+  .layer .desc b { color: #e0e6ed; }
+
+  .rule {
+    margin-top: 26px; padding: 15px 18px;
+    background: rgba(255, 209, 102, .08);
+    border-left: 4px solid #ffd166; border-radius: 0 8px 8px 0;
+    font-size: 13px; line-height: 1.8; color: #d9c9a0;
+  }
+  .rule b { color: #ffd166; }
+  code { color: #06d6a0; }
+</style>
+</head>
+<body>
+
+<div class="title">xinghe-helper · 项目文件结构（Day 19 后）</div>
+<div class="sub">C:\Users\Zhang\Desktop\xinghe-helper\　|　绿色 = 今天新增　|　橙色 = 今天修改</div>
+
+<div class="tree">
+<span class="dir">xinghe-helper/</span><br>
+<span class="line">├──</span> <span class="dir">cloudfunctions/</span> <span class="cmt">← 后端（CloudBase 云函数）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;├──</span> <span class="dir">api-rooms/</span> <span class="cmt">← 房间接口（今天重构了它）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; ├──</span> <span class="file">index.js</span> <span class="chg">（今天修改：292→279 行）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; ├──</span> <span class="new">rooms.repo.js</span> <span class="cmt">← ★ 今天新拆出来的数据库操作文件</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; ├──</span> <span class="file">db.js</span> <span class="cmt">（连接层：怎么连上数据库）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; └──</span> <span class="file">response.js</span> <span class="cmt">（信封层：统一响应形状）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;├──</span> <span class="dir">api-students/</span> <span class="cmt">← 学生接口（暂未重构）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; ├──</span> <span class="file">index.js</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; ├──</span> <span class="file">db.js</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp; └──</span> <span class="file">response.js</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;└──</span> <span class="dir">health/</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; └──</span> <span class="file">index.js</span><br>
+<span class="line">├──</span> <span class="dir">db/</span> <span class="cmt">← 建表脚本</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; ├──</span> <span class="file">schema.sql</span> &nbsp; <span class="file">seed.sql</span> &nbsp; <span class="file">grant-write.sql</span><br>
+<span class="line">├──</span> <span class="dir">docs/</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; ├──</span> <span class="new">Day19-分层重构与回归验证.md</span> <span class="cmt">← 今天写的验证文档</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; ├──</span> <span class="file">api-contract.md</span> &nbsp; <span class="file">Day16-数据库执行步骤.md</span> &nbsp; <span class="file">Day14-用户测试记录.md</span><br>
+<span class="line">├──</span> <span class="dir">web/src/</span> <span class="cmt">← 前端（React）</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; ├──</span> <span class="dir">pages/</span> <span class="file">Home.jsx · Workbench.jsx · Overview.jsx · StudentForm.jsx</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; ├──</span> <span class="dir">api/</span> <span class="file">client.js · rooms.js · students.js</span><br>
+<span class="line">│</span> &nbsp;&nbsp;&nbsp; └──</span> <span class="dir">components/</span> <span class="file">OceanScene.jsx · AsyncButton.jsx · Fish.jsx</span><br>
+<span class="line">├──</span> <span class="new">day19-baseline-before.json</span> <span class="cmt">← 重构前基线（证据）</span><br>
+<span class="line">├──</span> <span class="new">day19-baseline-after.json</span> &nbsp; <span class="cmt">← 重构后基线（证据）</span><br>
+<span class="line">└──</span> <span class="new">_day19_baseline.js</span> <span class="cmt">← 基线抓取脚本</span><br>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <h3>今天拆出来的四层，各管一件事</h3>
+    <div class="layer"><span class="badge b-if">接口层</span><span class="desc">
+      <b>index.js</b> — 接请求、校验参数、翻译错误码、返响应<br>
+      <span style="color:#ff6b6b">✗ 已无 db.from(...)</span></span></div>
+    <div class="layer"><span class="badge b-repo">数据层</span><span class="desc">
+      <b>rooms.repo.js</b> — rooms 表怎么查：<br>
+      findByCamp / findCampById / findByRoomNo / create</span></div>
+    <div class="layer"><span class="badge b-db">连接层</span><span class="desc">
+      <b>db.js</b> — cloudbase.init + app.rdb()<br>只管连上，不管查什么</span></div>
+    <div class="layer"><span class="badge b-resp">信封层</span><span class="desc">
+      <b>response.js</b> — ok() / fail()<br>统一 { ok, data, error }</span></div>
+  </div>
+
+  <div class="card">
+    <h3>回归验证结论</h3>
+    <div style="font-size:13px; line-height:2; color:#b8c8d8">
+      对比 <b style="color:#4fc3f7">重构前</b> 与 <b style="color:#06d6a0">重构后</b> 各抓一份完整基线，<br>
+      逐条比对 9 个真实接口调用：<br><br>
+      <span style="font-size:22px; font-weight:700; color:#06d6a0">9 / 9 全部通过</span><br><br>
+      <span style="color:#8fa3b8">包括 200 成功路径、400 参数校验失败、<br>409 房号重复 —— 响应形状与错误码全部一致。</span>
+    </div>
+  </div>
+</div>
+
+<div class="rule">
+  <b>Day 19 立下的规矩：</b>
+  index.js 里不允许再出现 <code>db.from(...)</code>。要查什么，先在 rooms.repo.js 里加一个方法，再从 index.js 调它 ——<br>
+  这样「数据从哪来」永远只有一个答案，以后加接口时index.js 不会越涨越大。
+</div>
+
+</body>
+</html>

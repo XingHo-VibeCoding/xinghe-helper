@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Day 20｜前端从 mock 切换为调用公网接口</title>
+<style>
+  :root{
+    --bg:#0f1420; --panel:#171e2e; --panel2:#1e2638; --line:#2b3548;
+    --ink:#e8ecf4; --ink2:#9aa7bd; --ink3:#6b7891;
+    --new:#3ddc97; --newbg:rgba(61,220,151,.12);
+    --old:#e0a458; --oldbg:rgba(224,164,88,.10);
+    --acc:#5aa9ff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); padding:34px 30px 44px;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:25px;letter-spacing:.3px;margin-bottom:6px}
+  .sub{color:var(--ink2);font-size:13.5px;margin-bottom:26px}
+  .badge{display:inline-block;margin-left:9px;padding:2px 9px;border-radius:999px;
+    font-size:11.5px;font-weight:600;vertical-align:middle}
+  .b-new{background:var(--newbg);color:var(--new);border:1px solid rgba(61,220,151,.35)}
+  .b-del{background:rgba(233,90,90,.12);color:#ff8b8b;border:1px solid rgba(233,90,90,.3)}
+  .b-old{background:var(--oldbg);color:var(--old);border:1px solid rgba(224,164,88,.3)}
+
+  h2{font-size:15px;color:var(--acc);margin:28px 0 12px;padding-left:10px;
+     border-left:3px solid var(--acc);letter-spacing:.2px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:20px 22px;margin-bottom:16px}
+  .card.hl{border-color:rgba(61,220,151,.45);background:linear-gradient(180deg,var(--newbg),var(--panel) 60%)}
+
+  /* 目录树 */
+  .tree{font-family:"Cascadia Mono",Consolas,monospace;font-size:13px;line-height:1.95}
+  .tree .dir{color:var(--acc);font-weight:600}
+  .tree .f{color:var(--ink)}
+  .tree .cm{color:var(--ink3)}
+  .tree .fnew{color:var(--new);font-weight:600}
+  .tree .fdel{color:#ff8b8b;text-decoration:line-through;opacity:.75}
+
+  /* 前后对比 */
+  .flow{display:grid;grid-template-columns:1fr 46px 1fr;gap:0;align-items:center;margin-top:6px}
+  .col{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
+  .col.before{border-color:rgba(224,164,88,.3)}
+  .col.after{border-color:rgba(61,220,151,.45)}
+  .col h3{font-size:13px;margin-bottom:10px;letter-spacing:.2px}
+  .before h3{color:var(--old)} .after h3{color:var(--new)}
+  .stack{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px;line-height:1.85}
+  .arrow{text-align:center;color:var(--ink3);font-size:24px;font-weight:300}
+
+  .kv{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;
+      border-bottom:1px dashed rgba(255,255,255,.055)}
+  .kv:last-child{border:0}
+  .kv .k{color:var(--ink2)}
+  .kv .v{font-family:"Cascadia Mono",Consolas,monospace;font-size:12.5px}
+  .ok{color:var(--new)} .no{color:#ff8b8b} .neu{color:var(--ink2)}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+  th{text-align:left;color:var(--ink3);font-weight:600;font-size:11.5px;
+     padding:7px 9px;border-bottom:1px solid var(--line);letter-spacing:.3px}
+  td{padding:7px 9px;border-bottom:1px solid rgba(255,255,255,.045)}
+  td code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;color:var(--acc)}
+  tr:last-child td{border:0}
+
+  .note{background:rgba(90,169,255,.07);border-left:3px solid var(--acc);
+        padding:11px 15px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--ink2);margin-top:12px}
+  .warn{background:rgba(233,120,90,.08);border-left:3px solid #e9785a;
+        padding:11px 15px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--ink2);margin-top:12px}
+  .warn b{color:#ff9f7f}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .pill{display:inline-block;padding:1px 8px;border-radius:5px;font-size:11px;
+        font-family:"Cascadia Mono",Consolas,monospace}
+  .p-get{background:rgba(90,169,255,.14);color:#7cc0ff}
+  .p-post{background:rgba(61,220,151,.14);color:var(--new)}
+  .p-patch{background:rgba(255,196,90,.14);color:#ffc45a}
+  .p-del{background:rgba(255,120,120,.14);color:#ff8b8b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 20｜前端从 mock 数据切换为调用公网接口<span class="badge b-new">已完成 20/20 验证</span></h1>
+  <div class="sub">2026-10-07 · 把数据库访问权从浏览器收回到后端，同时把 CORS 从 <code style="color:var(--old)">*</code> 收紧成白名单</div>
+
+  <h2>一句话</h2>
+  <div class="card hl">
+    <div style="font-size:14.5px">前端不再直连数据库了。所有数据都走
+      <code style="color:var(--acc);font-size:13px">…service.tcloudbase.com/api/*</code>，
+      数据库的访问权<b style="color:var(--new)">全部收在后端</b>。</div>
+  </div>
+
+  <h2>数据流：改了什么</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="col before">
+        <h3>Day 19 之前</h3>
+        <div class="stack">
+          <div style="color:var(--ink)">浏览器页面</div>
+          <div style="color:var(--ink3)">├─ supabase-js（anon key 在包里）</div>
+          <div style="color:var(--ink3)">├─ 直接读写PostgREST</div>
+          <div style="color:var(--ink3)">└─ 一键分房 = 循环发几十次写请求</div>
+          <div style="color:var(--ink3)">　 ↓</div>
+          <div style="color:var(--ink3)">数据库</div>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="col after">
+        <h3>Day 20 起</h3>
+        <div class="stack">
+          <div style="color:var(--ink)">浏览器页面</div>
+          <div style="color:var(--ink3)">└─ fetch（只有接口地址，无密钥）</div>
+          <div style="color:var(--ink3)">　 ↓　CORS 白名单放行</div>
+          <div style="color:var(--new)">云函数：校验 + 业务规则 + 统一信封</div>
+          <div style="color:var(--ink3)">　 ↓</div>
+          <div style="color:var(--ink3)">数据库（anon 身份在后端）</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="note"><b style="color:var(--acc)">权限边界</b><br>
+        anon key 不再进前端产物。拿到 key 也写不了库，能做什么完全由后端接口决定。</div>
+      <div class="note"><b style="color:var(--acc)">一致性</b><br>
+        「重复提交保留最新」原来在浏览器分 3 次请求做，中间失败会留下脏数据；现在后端一次做完。</div>
+    </div>
+  </div>
+
+  <h2>目录结构变化</h2>
+  <div class="card">
+    <div class="tree">
+      <div class="dir">cloudfunctions/</div>
+      <div class="f" style="padding-left:14px">├─ <span class="dir">api-rooms/</span><span class="cm">（房间 4 个接口）</span></div>
+      <div class="f" style="padding-left:28px">├─ index.js<span class="cm">← 接口层：分流+校验+返响应</span></div>
+      <div class="f" style="padding-left:28px">├─ rooms.repo.js<span class="cm">← 数据层：9 个方法</span></div>
+      <div class="fnew" style="padding-left:28px">├─ cors.js <span class="pill b-new">★新增</span><span class="cm">← CORS 白名单</span></div>
+      <div class="f" style="padding-left:28px">└─ response.js<span class="cm">← 已改为白名单版</span></div>
+      <div class="f" style="padding-left:14px">├─ <span class="dir">api-students/</span><span class="cm">（学生 7 个接口）</span></div>
+      <div class="fnew" style="padding-left:28px">├─ index.js <span class="pill b-new">★重写</span><span class="cm">← 从 1 个接口扩到 7 个</span></div>
+      <div class="fnew" style="padding-left:28px">├─ students.repo.js <span class="pill b-new">★新增</span><span class="cm">← 10 个方法</span></div>
+      <div class="fnew" style="padding-left:28px">├─ cors.js <span class="pill b-new">★新增</span></div>
+      <div class="f" style="padding-left:28px">└─ response.js</div>
+      <div class="f" style="padding-left:14px">└─ <span class="dir">health/</span><span class="cm">（健康检查）</span></div>
+      <div class="fnew" style="padding-left:28px">├─ index.js <span class="pill b-new">★补 CORS</span></div>
+      <div class="fnew" style="padding-left:28px">└─ cors.js <span class="pill b-new">★新增</span></div>
+      <div class="dir" style="margin-top:9px">web/</div>
+      <div class="fnew" style="padding-left:14px">├─ src/api/client.js <span class="pill b-new">★重写</span><span class="cm">← fetch + 拆信封 + mock 兜底</span></div>
+      <div class="fnew" style="padding-left:14px">├─ src/api/rooms.js <span class="pill b-new">★重写</span><span class="cm">← supabase → apiGet/apiPost</span></div>
+      <div class="fnew" style="padding-left:14px">├─ src/api/students.js <span class="pill b-new">★重写</span></div>
+      <div class="fdel" style="padding-left:14px">├─ src/api/mockData.js <span class="pill b-del">已删除</span><span class="cm">（并入 client.js）</span></div>
+      <div class="fnew" style="padding-left:14px">└─ .env <span class="pill b-new">★改</span><span class="cm">← 新增 VITE_API_BASE_URL，删掉 anon key</span></div>
+      <div class="fnew" style="padding-left:14px">└─ cloudbaserc.json <span class="pill b-new">★改</span><span class="cm">← 补 health 条目 + ALLOWED_ORIGINS</span></div>
+    </div>
+    <div class="note">每个云函数目录都有一份 <code style="color:var(--acc)">cors.js</code> 副本 ——
+      CloudBase 只打包函数自己的目录，跨目录 <code style="color:var(--acc)">require</code> 在云端拿不到。
+      改白名单时三处都要同步。这是平台限制，必须记住。</div>
+  </div>
+
+  <h2>12 个接口（按契约）</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:52px">契约</th><th style="width:76px">方法</th><th>实际调用</th><th style="width:130px">说明</th></tr></thead>
+      <tbody>
+        <tr><td>2.1</td><td><span class="pill p-get">GET</span></td><td><code>/api/health</code></td><td class="neu">健康检查</td></tr>
+        <tr><td>2.2</td><td><span class="pill p-get">GET</span></td><td><code>/api/students?action=camp&amp;camp_id=1</code></td><td class="neu">营期信息</td></tr>
+        <tr><td>2.3</td><td><span class="pill p-post">POST</span></td><td><code>/api/students</code></td><td class="neu">学生报名</td></tr>
+        <tr><td>2.4</td><td><span class="pill p-get">GET</span></td><td><code>/api/students?camp_id=1</code></td><td class="neu">学生列表</td></tr>
+        <tr><td>2.5</td><td><span class="pill p-get">GET</span></td><td><code>/api/rooms?camp_id=1</code></td><td class="neu">房间列表</td></tr>
+        <tr><td>2.6</td><td><span class="pill p-post">POST</span></td><td><code>/api/rooms</code></td><td class="neu">新建房间</td></tr>
+        <tr><td>2.7</td><td><span class="pill p-patch">PATCH</span></td><td><code>/api/rooms?id=&amp;camp_id=</code></td><td class="neu">改房间 <span style="color:var(--old)">（契约写的是 /:id）</span></td></tr>
+        <tr><td>2.8</td><td><span class="pill p-del">DELETE</span></td><td><code>/api/rooms?id=&amp;camp_id=</code></td><td class="neu">删房间 <span style="color:var(--old)">（同上）</span></td></tr>
+        <tr><td>2.9</td><td><span class="pill p-patch">PATCH</span></td><td><code>/api/students?id=</code></td><td class="neu">单人分配 <span style="color:var(--old)">（同上）</span></td></tr>
+        <tr><td>2.10</td><td><span class="pill p-post">POST</span></td><td><code>/api/students?action=apply</code></td><td class="neu">批量分配</td></tr>
+        <tr><td>2.11</td><td><span class="pill p-post">POST</span></td><td><code>/api/students?action=history</code></td><td class="neu">存 AI 快照</td></tr>
+        <tr><td>2.12</td><td><span class="pill p-get">GET</span></td><td><code>/api/students?action=history</code></td><td class="neu">读最近快照</td></tr>
+      </tbody>
+    </table>
+    <div class="note">控制台只配了 3 条路径映射，且 Path passthrough = Disable（带 <code style="color:var(--acc)">/:id</code> 的路径传不进来）。
+      所以新增能力靠<b style="color:var(--ink)">方法 + action 查询参数</b>分流，不新增路径 ——
+      契约 2.7/2.8/2.9 的形态不同、语义一致。</div>
+  </div>
+
+  <h2>CORS 白名单实测</h2>
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:330px">请求 Origin</th><th style="width:300px">响应</th><th>浏览器能读到</th></tr></thead>
+      <tbody>
+        <tr><td><code>…tcloudbaseapp.com</code> <span style="color:var(--ink3)">（静态托管）</span></td>
+            <td><code>allow-origin: 该域名</code></td><td class="ok">能</td></tr>
+        <tr><td><code>http://localhost:5173</code></td>
+            <td><code>allow-origin: localhost:5173</code></td><td class="ok">能</td></tr>
+        <tr><td><code>https://evil.example.com</code></td>
+            <td><code style="color:#ff8b8b">一个 CORS 头都不回</code></td><td class="no">不能</td></tr>
+      </tbody>
+    </table>
+    <div class="note">「不回 CORS 头」而不是「回错误」是有意的：浏览器看到没有
+      <code style="color:var(--acc)">Access-Control-Allow-Origin</code> 自己就会拦掉，
+      服务端不替浏览器判断，也不泄露「这个接口存在」。</div>
+  </div>
+
+  <h2>验证结果 20/20</h2>
+  <div class="card">
+    <div class="kv"><span class="k">健康检查（200 / 带 CORS 头 / 非法源无头）</span><span class="v ok">✓ 3/3</span></div>
+    <div class="kv"><span class="k">读接口（rooms · students · 营期 · 快照）</span><span class="v ok">✓ 5/5</span></div>
+    <div class="kv"><span class="k">预检 OPTIONS（白名单 204 / 非法源无头）</span><span class="v ok">✓ 2/2</span></div>
+    <div class="kv"><span class="k">校验层（缺参 / 空 body / 非法 JSON / 枚举…）</span><span class="v ok">✓ 10/10</span></div>
+    <div class="note" style="color:var(--ink3)">实测返回示例 ——<code>PATCH /api/rooms?id=101&amp;camp_id=1</code> 把容量改成 1：<br>
+      <code style="color:#ff8b8b">{"ok":false,"error":{"code":"ROOM_CAPACITY_CONFLICT","message":"房内现有 3 人,不能把容量改成 1;请先移出一部分人"}}</code></div>
+  </div>
+
+  <h2>密钥检查</h2>
+  <div class="card">
+    <div class="kv"><span class="k">Supabase anon key</span><span class="v ok">已从 .env 删除，不再进前端产物</span></div>
+    <div class="kv"><span class="k">数据库连接串</span><span class="v ok">从来没进过前端</span></div>
+    <div class="kv"><span class="k">PG_SCHEMA · ALLOWED_ORIGINS</span><span class="v ok">只在云函数环境变量里</span></div>
+    <div class="kv"><span class="k">API 地址</span><span class="v ok">走 VITE_API_BASE_URL，代码无硬编码</span></div>
+    <div class="kv"><span class="k">构建产物</span><span class="v ok">217 KB / gzip 72 KB，无密钥</span></div>
+  </div>
+
+  <h2>今天踩的坑</h2>
+  <div class="card">
+    <div class="warn"><b>health 部署卡了 13 分钟。</b>
+      换 <code>--deployMode zip</code> 也卡。根因是 <code>cloudbaserc.json</code> 里<b>没有 health 的条目</b>——
+      前两个函数部署时是「create」所以成功，health 是已存在的旧函数，CLI 在等一个不会完成的流程。
+      补上配置条目后几秒就成功。<b>教训：部署卡住先看配置文件里有没有这个函数，别只怀疑网络。</b></div>
+    <div class="warn"><b>写权限要手动开。</b>
+      <code>POST /api/students</code> 报<code>permission denied for table students</code>。
+      这不是 CORS 也不是代码问题——<b>读接口正常、写接口被拒，说明表上有 SELECT、缺 INSERT</b>。
+      看到这句话先去看 GRANT，别怀疑刚改的前端。SQL 已写好在 <code>db/grant-write.sql</code>。</div>
+  </div>
+
+  <h2>一个安全问题要说在前面</h2>
+  <div class="card">
+    <div style="font-size:13px;color:var(--ink2);line-height:1.75">
+      给 <code style="color:var(--acc)">students</code> 开 anon 写权限，
+      意味着<b style="color:#ff9f7f">任何拿到接口链接的人都能往表里塞假报名</b>。
+      如果这张表里放的是真实学生的姓名、性别、老师、入住日期，
+      那这不光是数据脏，而是<b style="color:#ff9f7f">个人信息被公开写入、可被任意人读取</b>。<br><br>
+      当前阶段（示例数据）可以接受，但接入真实数据前必须做完三件事：
+      ① 收回 GRANT（<code>db/grant-write.sql</code> 第 4 段有现成的 REVOKE）
+      ② 改成登录态校验　③ 表里只放示例数据。
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

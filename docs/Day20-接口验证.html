@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Day 20｜接口验证</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --line:#d8dee9;
+    --ink:#16202e; --ink2:#5a6880; --ink3:#8c99ad;
+    --ok:#0f9d58; --okbg:#e6f6ed; --err:#d93025; --errbg:#fdecea;
+    --acc:#1a73e8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);padding:30px 26px 40px;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;line-height:1.6}
+  .wrap{max-width:1160px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:5px}
+  .sub{color:var(--ink2);font-size:13px;margin-bottom:24px}
+  .badge{display:inline-block;margin-left:9px;padding:2px 10px;border-radius:999px;
+    font-size:11.5px;font-weight:600;background:var(--okbg);color:var(--ok);
+    border:1px solid rgba(15,157,88,.3);vertical-align:middle}
+
+  /* 仿浏览器 */
+  .browser{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;box-shadow:0 3px 18px rgba(20,30,50,.09);margin-bottom:18px}
+  .chrome{background:#e3e7ee;border-bottom:1px solid var(--line);padding:9px 12px;
+    display:flex;align-items:center;gap:10px}
+  .dots{display:flex;gap:6px}
+  .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .urlbar{flex:1;background:#fff;border:1px solid var(--line);border-radius:7px;
+    padding:7px 13px;font-family:"Cascadia Mono",Consolas,monospace;font-size:12px;
+    color:var(--ink);display:flex;align-items:center;gap:8px}
+  .lock{color:var(--ok);font-size:12px}
+  .urlbar .sep{color:var(--ink3)}
+  .lockbadge{margin-left:auto;font-size:10.5px;color:var(--ink3);
+    border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+  .body{padding:17px 20px}
+
+  .lab{font-size:12px;color:var(--ink3);margin:0 0 9px;letter-spacing:.2px;
+    display:flex;align-items:center;gap:8px}
+  .lab b{color:var(--ink);font-weight:600;font-size:12.5px}
+  .tag{padding:1.5px 8px;border-radius:5px;font-size:10.5px;font-weight:700;
+    font-family:"Cascadia Mono",Consolas,monospace;letter-spacing:.3px}
+  .t-get{background:#e8f0fe;color:#1967d2} .t-post{background:var(--okbg);color:var(--ok)}
+  .t-patch{background:#fef7e0;color:#b06000} .t-del{background:var(--errbg);color:var(--err)}
+
+  pre{background:#1b2334;color:#dbe3f0;border-radius:9px;padding:14px 16px;
+    font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;line-height:1.72;
+    overflow-x:auto;white-space:pre-wrap;word-break:break-all}
+  .j-key{color:#7cc0ff} .j-str{color:#a5d6a7} .j-num{color:#ffcb6b}
+  .j-bool{color:#ff9f7f} .j-null{color:#8c99ad} .j-punc{color:#8fa0bd}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--panel)}
+  th{text-align:left;color:var(--ink2);font-weight:600;font-size:11.5px;
+    padding:9px 11px;border-bottom:1.5px solid var(--line);letter-spacing:.3px}
+  td{padding:8px 11px;border-bottom:1px solid #eef1f6}
+  tr:last-child td{border:0}
+  td.m{font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;white-space:nowrap}
+  .c-ok{color:var(--ok);font-weight:600} .c-err{color:var(--err);font-weight:600}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin-bottom:16px}
+  .sec h2{font-size:15px;color:var(--ink);margin-bottom:13px;padding-bottom:9px;
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+    align-items:center}
+  .cnt{font-size:11.5px;color:var(--ok);font-weight:600}
+  .note{background:#f6f9ff;border-left:3px solid var(--acc);padding:10px 14px;
+    border-radius:0 7px 7px 0;font-size:12px;color:var(--ink2);margin-top:12px}
+  .note code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Day 20｜接口验证<span class="badge">20 / 20 全部通过</span></h1>
+  <div class="sub">2026-10-07 · 前端从mock 切换为调用公网接口后的实测结果　｜　Base URL：<code>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</code></div>
+
+  <!-- ① 健康检查 -->
+  <div class="lab"><span class="tag t-get">GET</span><b>/api/health</b> —— 三个云函数都部署成功的确认</div>
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <div class="urlbar"><span class="lock">🔒</span><span>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</span><span class="sep">/api/health</span></div>
+      <div class="lockbadge">🔒 安全</div>
+    </div>
+    <div class="body">
+      <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"service"</span><span class="j-punc">:</span> <span class="j-str">"xinghe-helper"</span>
+}</pre>
+    </div>
+  </div>
+
+  <!-- ② 房间列表 -->
+  <div class="lab"><span class="tag t-get">GET</span><b>/api/rooms?camp_id=1</b> —— 前端工作台显示的 13 间真实房间</div>
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <div class="urlbar"><span class="lock">🔒</span><span>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</span><span class="sep">/api/rooms?camp_id=1</span></div>
+      <div class="lockbadge">🔒 安全</div>
+    </div>
+    <div class="body">
+      <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">[</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">101</span><span class="j-punc">,</span> <span class="j-key">"camp_id"</span><span class="j-punc">:</span> <span class="j-num">1</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"301"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">4</span><span class="j-punc">,</span> <span class="j-key">"gender_label"</span><span class="j-punc">:</span> <span class="j-str">"女"</span><span class="j-punc">,</span> <span class="j-key">"created_at"</span><span class="j-punc">:</span> <span class="j-str">"2026-10-04T19:16:36.867547+08:00"</span> <span class="j-punc">},</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">102</span><span class="j-punc">,</span> <span class="j-key">"camp_id"</span><span class="j-punc">:</span> <span class="j-num">1</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"302"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">4</span><span class="j-punc">,</span> <span class="j-key">"gender_label"</span><span class="j-punc">:</span> <span class="j-str">"男"</span> <span class="j-punc">},</span>
+    <span class="j-punc">…</span> <span class="j-comment">共 13 条（其中 305~312 与 D19/D19B 是测试期间建的）</span>
+  <span class="j-punc">],</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-null">null</span>
+}</pre>
+    </div>
+  </div>
+
+  <!-- ③ 超员冲突 -->
+  <div class="lab"><span class="tag t-patch">PATCH</span><b>/api/rooms?id=101&amp;camp_id=1</b> body <code>{"capacity":1}</code> —— 业务规则在后端被真拦住了</div>
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <div class="urlbar"><span class="lock">🔒</span><span>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</span><span class="sep">/api/rooms?id=101&amp;camp_id=1</span></div>
+      <div class="lockbadge">🔒 安全</div>
+    </div>
+    <div class="body">
+      <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">false</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-null">null</span><span class="j-punc">,</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-punc">{</span>
+    <span class="j-key">"code"</span><span class="j-punc">:</span> <span class="j-str">"ROOM_CAPACITY_CONFLICT"</span><span class="j-punc">,</span>
+    <span class="j-key">"message"</span><span class="j-punc">:</span> <span class="j-str">"房内现有 3 人,不能把容量改成 1;请先移出一部分人"</span>
+  <span class="j-punc">}</span>
+}</pre>
+      <div class="note">这条最能说明「为什么要把校验搬到后端」：
+        301 房里住着 3 个人，把容量改成 1 会被拒绝。
+        如果这个判断只在浏览器里，改一下 JS 就能跳过去。</div>
+    </div>
+  </div>
+
+  <!-- ④ 学生提交（权限未开） -->
+  <div class="lab"><span class="tag t-post">POST</span><b>/api/students</b> —— 写权限还没开时的真实返回（预期之中）</div>
+  <div class="browser">
+    <div class="chrome">
+      <div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+      <div class="urlbar"><span class="lock">🔒</span><span>https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</span><span class="sep">/api/students</span></div>
+      <div class="lockbadge">🔒 安全</div>
+    </div>
+    <div class="body">
+      <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">false</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-null">null</span><span class="j-punc">,</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-punc">{</span>
+    <span class="j-key">"code"</span><span class="j-punc">:</span> <span class="j-str">"DB_ERROR"</span><span class="j-punc">,</span>
+    <span class="j-key">"message"</span><span class="j-punc">:</span> <span class="j-str">"提交失败:permission denied for table students"</span>
+  <span class="j-punc">}</span>
+}</pre>
+      <div class="note" style="background:#fff8f0;border-color:#e0803c">
+        这<b>不是 bug</b>。<code>students</code> 表现在只有 SELECT，缺 INSERT ——
+        读接口正常、写接口被拒，正是 Day 18 遇到过的同一件事。
+        需要在控制台执行 <code>db/grant-write.sql</code> 的「Day 20 追加」段。</div>
+    </div>
+  </div>
+
+  <!-- 逐项清单 -->
+  <div class="sec">
+    <h2>逐项验证清单<span class="cnt">20 / 20 通过</span></h2>
+    <table>
+      <thead><tr><th style="width:34px">#</th><th style="width:88px">方法</th><th>验证内容</th><th style="width:240px">预期</th><th style="width:52px">结果</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td class="m"><span class="tag t-get">GET</span></td><td>/api/health</td><td>200 + JSON</td><td class="c-ok">✓</td></tr>
+        <tr><td>2</td><td class="m"><span class="tag t-get">GET</span></td><td>health 白名单 Origin</td><td>带 allow-origin 头</td><td class="c-ok">✓</td></tr>
+        <tr><td>3</td><td class="m"><span class="tag t-get">GET</span></td><td>health 非法 Origin</td><td>无 CORS 头</td><td class="c-ok">✓</td></tr>
+        <tr><td>4</td><td class="m"><span class="tag t-get">GET</span></td><td>/api/rooms?camp_id=1</td><td>200 · 13 条真实房间</td><td class="c-ok">✓</td></tr>
+        <tr><td>5</td><td class="m"><span class="tag t-get">GET</span></td><td>/api/rooms（缺 camp_id）</td><td>400 MISSING_CAMP_ID</td><td class="c-ok">✓</td></tr>
+        <tr><td>6</td><td class="m"><span class="tag t-get">GET</span></td><td>/api/students?camp_id=1</td><td>200 · 12 名真实学生</td><td class="c-ok">✓</td></tr>
+        <tr><td>7</td><td class="m"><span class="tag t-get">GET</span></td><td>?action=camp&amp;camp_id=1</td><td>「第一期口语拉练营」</td><td class="c-ok">✓</td></tr>
+        <tr><td>8</td><td class="m"><span class="tag t-get">GET</span></td><td>?action=history</td><td>返回已存在快照</td><td class="c-ok">✓</td></tr>
+        <tr><td>9</td><td class="m"><span class="tag t-get">OPTIONS</span></td><td>白名单 Origin 预检</td><td>204 + 完整 CORS 头</td><td class="c-ok">✓</td></tr>
+        <tr><td>10</td><td class="m"><span class="tag t-get">OPTIONS</span></td><td>非法 Origin 预检</td><td>204 但无 CORS 头</td><td class="c-ok">✓</td></tr>
+        <tr><td>11</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改房缺 id</td><td>400 VALIDATION_ERROR</td><td class="c-ok">✓</td></tr>
+        <tr><td>12</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改房空 body</td><td>400 NOTHING_TO_UPDATE</td><td class="c-ok">✓</td></tr>
+        <tr><td>13</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改房 body 非法 JSON</td><td>400 INVALID_JSON</td><td class="c-ok">✓</td></tr>
+        <tr><td>14</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改不存在的房间</td><td>404 ROOM_NOT_FOUND</td><td class="c-ok">✓</td></tr>
+        <tr><td>15</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改容量 4→5（正常）</td><td>200 ok:true</td><td class="c-ok">✓</td></tr>
+        <tr><td>16</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改容量 → 超员</td><td>409 ROOM_CAPACITY_CONFLICT</td><td class="c-ok">✓</td></tr>
+        <tr><td>17</td><td class="m"><span class="tag t-patch">PATCH</span></td><td>改成已存在的房号</td><td>409 ROOM_NO_DUPLICATED</td><td class="c-ok">✓</td></tr>
+        <tr><td>18</td><td class="m"><span class="tag t-post">POST</span></td><td>建房房号重复 / 缺字段</td><td>409 / 400</td><td class="c-ok">✓</td></tr>
+        <tr><td>19</td><td class="m"><span class="tag t-post">POST</span></td><td>学生老师不在枚举内</td><td>400 VALIDATION_ERROR</td><td class="c-ok">✓</td></tr>
+        <tr><td>20</td><td class="m"><span class="tag t-del">DELETE</span></td><td>删不存在的房间 / 批量格式错 / 快照格式错</td><td>404 / 400 / 400</td><td class="c-ok">✓</td></tr>
+      </tbody>
+    </table>
+    <div class="note">第 16 项最能说明「为什么要把校验搬到后端」：301 房里住着 3 个人，
+      把容量改成 1 会被真拦下来。如果这个判断只在浏览器里，改一下 JS 就能跳过去。</div>
+  </div>
+
+  <!-- 待权限 -->
+  <div class="sec">
+    <h2>待开权限后验证<span class="cnt" style="color:#e0803c">6 项</span></h2>
+    <table>
+      <thead><tr><th style="width:88px">方法</th><th>验证内容</th><th style="width:250px">预期</th></tr></thead>
+      <tbody>
+        <tr><td class="m"><span class="tag t-post">POST</span></td><td>学生报名</td><td>200 · { id, updated:false }</td></tr>
+        <tr><td class="m"><span class="tag t-post">POST</span></td><td>同名重复提交</td><td>200 · updated:true，工作台里该学生只出现一次</td></tr>
+        <tr><td class="m"><span class="tag t-patch">PATCH</span></td><td>单人分配 ?id=</td><td>200 · assigned_room_id 已更新</td></tr>
+        <tr><td class="m"><span class="tag t-post">POST</span></td><td>批量分配 ?action=apply</td><td>200 · { applied_count: N }</td></tr>
+        <tr><td class="m"><span class="tag t-post">POST</span></td><td>存快照 ?action=history</td><td>200 · { id }</td></tr>
+        <tr><td class="m"><span class="tag t-del">DELETE</span></td><td>删有人的房</td><td>200 · { unassigned_count: N }</td></tr>
+      </tbody>
+    </table>
+    <div class="note" style="background:#fff8f0;border-color:#e0803c">
+      现在这 6 项都会被拒：<code>permission denied for table students</code>。
+      需要在 CloudBase 控制台 → 数据库 → SQL 编辑器执行：
+      <br><code>grant insert, update on table public.students to anon;</code>
+      <br><code>grant insert, select on table public.assignment_history to anon;</code>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

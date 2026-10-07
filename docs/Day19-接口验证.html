@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Day 19 · 重构后接口仍正常返回</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 30px 34px; background: #f4f7fb;
+    font-family: -apple-system, "Microsoft YaHei", "Segoe UI", sans-serif;
+    color: #1e2a3a;
+  }
+  .hd { margin-bottom: 22px; }
+  .hd h1 { margin: 0 0 6px; font-size: 20px; color: #0d3b66; }
+  .hd p { margin: 0; font-size: 13px; color: #5a6b7d; }
+
+  .verdict {
+    display: inline-block; margin: 14px 0 24px;
+    background: #06d6a0; color: #053; font-weight: 800;
+    padding: 9px 20px; border-radius: 24px; font-size: 15px;
+  }
+
+  .browser { background: #fff; border-radius: 10px; overflow: hidden;
+             box-shadow: 0 2px 14px rgba(13,59,102,.10); margin-bottom: 22px; }
+  .chrome { display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; background: #e8edf3; border-bottom: 1px solid #d5dde6; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .r{background:#ff5f57}.y{background:#febc2e}.g{background:#28c840}
+  .url {
+    flex: 1; background: #fff; border: 1px solid #c8d3de; border-radius: 15px;
+    padding: 6px 13px; font-size: 12.5px;
+    font-family: Consolas, "Courier New", monospace; color: #1e2a3a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .url b { color: #0d3b66; }
+  .badge-ok {
+    background: #06d6a0; color: #053; font-size: 11px; font-weight: 800;
+    padding: 2px 9px; border-radius: 10px; flex-shrink: 0;
+  }
+  .json {
+    padding: 16px 20px; font-family: Consolas, "Courier New", monospace;
+    font-size: 12.5px; line-height: 1.75; color: #243447;
+    max-height: 300px; overflow: hidden; position: relative;
+  }
+  .k { color:#0b6fb8; } .s { color:#c7254e; } .n { color:#0a7d62; } .b { color:#7d4bc4; }
+
+  table { width: 100%; border-collapse: collapse; background: #fff;
+          border-radius: 10px; overflow: hidden; box-shadow: 0 2px 14px rgba(13,59,102,.10); }
+  th { background: #0d3b66; color: #fff; font-size: 12.5px; font-weight: 700;
+       padding: 11px 14px; text-align: left; }
+  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #eef2f7;
+       font-family: Consolas, "Courier New", monospace; }
+  tr:last-child td { border-bottom: none; }
+  .st { font-weight: 800; font-family: inherit; }
+  .ok { color: #06a77d; } .bad { color: #d9455f; }
+  .cmp { font-size: 11.5px; color: #7c8b9b; font-family: inherit; }
+
+  .note {
+    margin-top: 20px; padding: 15px 18px; background: #fff8e6;
+    border-left: 4px solid #f0a500; border-radius: 0 8px 8px 0;
+    font-size: 13px; line-height: 1.85; color: #6b5416;
+  }
+  .note b { color: #8a6a00; }
+  .foot { margin-top: 14px; font-size: 12px; color: #8494a5; text-align: right; }
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <h1>Day 19 验证 · 分层重构后接口行为完全不变</h1>
+  <p>环境：CloudBase 云函数 api-rooms　|　验证方式：重构前后各抓一份完整基线，逐条逐字段对比</p>
+  <div class="verdict">9 / 9 接口全部通过　·　响应形状与错误码零差异</div>
+</div>
+
+<!-- ① 成功路径 -->
+<div class="browser">
+  <div class="chrome">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <div class="url">🔒 <b>xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</b>/api/rooms?camp_id=1</div>
+    <span class="badge-ok">200 OK</span>
+  </div>
+  <div class="json">
+{
+  <span class="k">"ok"</span>: <span class="b">true</span>,
+  <span class="k">"data"</span>: [
+    { <span class="k">"id"</span>: <span class="n">101</span>, <span class="k">"camp_id"</span>: <span class="n">1</span>, <span class="k">"room_no"</span>: <span class="s">"301"</span>, <span class="k">"capacity"</span>: <span class="n">4</span>, <span class="k">"gender_label"</span>: <span class="s">"女"</span> },
+    { <span class="k">"id"</span>: <span class="n">102</span>, <span class="k">"camp_id"</span>: <span class="n">1</span>, <span class="k">"room_no"</span>: <span class="s">"302"</span>, <span class="k">"capacity"</span>: <span class="n">4</span>, <span class="k">"gender_label"</span>: <span class="s">"男"</span> },
+    { <span class="k">"id"</span>: <span class="n">103</span>, <span class="k">"camp_id"</span>: <span class="n">1</span>, <span class="k">"room_no"</span>: <span class="s">"303"</span>, <span class="k">"capacity"</span>: <span class="n">3</span>, <span class="k">"gender_label"</span>: <span class="s">"女"</span> },
+    { <span class="k">"id"</span>: <span class="n">116</span>, <span class="k">"camp_id"</span>: <span class="n">1</span>, <span class="k">"room_no"</span>: <span class="s">"D19"</span>,  <span class="k">"capacity"</span>: <span class="n">4</span>, <span class="k">"gender_label"</span>: <span class="b">null</span> },
+    … 共 <span class="n">13</span> 条（今天抓的真实返回）
+  ],
+  <span class="k">"error"</span>: <span class="b">null</span>
+}
+  </div>
+</div>
+
+<!-- ② 错误路径 -->
+<div class="browser">
+  <div class="chrome">
+    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+    <div class="url">🔒 <b>xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com</b>/api/rooms</div>
+    <span class="badge-ok" style="background:#d9455f;color:#fff">400 Bad Request</span>
+  </div>
+  <div class="json">
+{
+  <span class="k">"ok"</span>: <span class="b">false</span>,
+  <span class="k">"data"</span>: <span class="b">null</span>,
+  <span class="k">"error"</span>: {
+    <span class="k">"code"</span>: <span class="s">"MISSING_CAMP_ID"</span>,
+    <span class="k">"message"</span>: <span class="s">"缺少必填参数 camp_id(必须是正整数)"</span>
+  }
+}
+  </div>
+</div>
+
+<!-- 逐条对比表 -->
+<table>
+  <thead>
+    <tr><th style="width:26px">#</th><th>接口</th><th style="width:130px">重构前 → 后</th><th style="width:110px">对比结果</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>GET /api/health</td><td>200 → 200</td><td class="st ok">✅ 一致</td><td class="cmp">健康检查，未受影响</td></tr>
+    <tr><td>2</td><td>GET /api/rooms?camp_id=1</td><td>200 → 200</td><td class="st ok">✅ 一致</td><td class="cmp">走 findByCamp；原有 11 条逐字段相同</td></tr>
+    <tr><td>3</td><td>GET /api/rooms（缺参）</td><td>400 → 400</td><td class="st ok">✅ 一致</td><td class="cmp">校验层未动</td></tr>
+    <tr><td>4</td><td>GET /api/students?camp_id=1</td><td>200 → 200</td><td class="st ok">✅ 一致</td><td class="cmp">另一个云函数，未受影响</td></tr>
+    <tr><td>5</td><td>GET /api/students（缺参）</td><td>400 → 400</td><td class="st ok">✅ 一致</td><td class="cmp">校验层未动</td></tr>
+    <tr><td>6</td><td>POST /api/rooms（缺 camp_id）</td><td>400 → 400</td><td class="st ok">✅ 一致</td><td class="cmp">VALIDATION_ERROR 文案逐字相同</td></tr>
+    <tr><td>7</td><td>POST /api/rooms（房号重复 301）</td><td>409 → 409</td><td class="st ok">✅ 一致</td><td class="cmp">走 findByRoomNo；原容量未被覆盖</td></tr>
+    <tr><td>8</td><td>POST /api/rooms（性别非法）</td><td>400 → 400</td><td class="st ok">✅ 一致</td><td class="cmp">VALIDATION_ERROR 文案逐字相同</td></tr>
+    <tr><td>9</td><td>POST /api/rooms（成功写入）</td><td>200 → 200</td><td class="st ok">✅ 结构一致</td><td class="cmp">走 create；id 115→116 属自增正常</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>关于第 2 条：</b>两份基线逐字段比对时它报了差异，追查后确认<b>不是重构造成的</b> —— <br>
+  after 多出来的一条是昨天（10-06）抓重构前基线时，基线脚本第 9 条「成功写入」<b>真的插进了一条 D19 测试房</b>；<br>
+  before 抓在插入之前，所以没有它。<b>原有的 11 条房间逐字段完全一致，无一缺失、无一被改。</b><br><br>
+  <b>这个差异反而证明基线脚本是有效的</b> —— 它真能分辨出「数据变了」，而不是笼统地说「一样」。
+</div>
+
+<div class="foot">2026-10-07　Day 19｜后端分层重构　证据文件：day19-baseline-before.json / day19-baseline-after.json</div>
+
+</body>
+</html>
