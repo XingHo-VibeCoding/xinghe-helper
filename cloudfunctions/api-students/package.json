@@ -1,0 +1,10 @@
+{
+  "name": "api-students",
+  "version": "1.0.0",
+  "description": "xinghe-helper 接口：GET /api/students 读取学生列表",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
+  }
+}

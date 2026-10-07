@@ -14,14 +14,22 @@ echo    xinghe-helper  -  Starting up
 echo ============================================
 echo.
 
+rem ---- 找 Node.js ----
+rem 优先用系统 PATH 里的 node；找不到就用 WorkBuddy 自带的。
+rem ⚠️ 不要把版本号写死在这里（原来写的是 22.22.2-3，WorkBuddy 升级后成了
+rem    22.22.2-6，脚本就找不到 node 了）。改成自动扫描 versions 目录，
+rem    这样以后WorkBuddy 再升级也不会坏。
 set NODE_EXE=
 for %%I in (node.exe) do set NODE_EXE=%%~$PATH:I
 
 if not defined NODE_EXE (
-  if exist "%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3\node.exe" set NODE_EXE=%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3\node.exe
-)
-if not defined NODE_EXE (
-  if exist "%USERPROFILE%\.workbuddy\binaries\node\versions\current\node.exe" set NODE_EXE=%USERPROFILE%\.workbuddy\binaries\node\versions\current\node.exe
+  for /f "delims=" %%D in ('dir /b /o-n "%USERPROFILE%\.workbuddy\binaries\node\versions" 2^>nul') do (
+    if not defined NODE_EXE (
+      if exist "%USERPROFILE%\.workbuddy\binaries\node\versions\%%D\node.exe" (
+        set NODE_EXE=%USERPROFILE%\.workbuddy\binaries\node\versions\%%D\node.exe
+      )
+    )
+  )
 )
 
 if not defined NODE_EXE (

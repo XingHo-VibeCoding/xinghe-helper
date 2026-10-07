@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "xinghe-helper-d5g92pis442fd9947",
+  "functionRoot": "./cloudfunctions",
+  "functions": [
+    {
+      "name": "api-rooms",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 10,
+      "installDependency": true,
+      "envVariables": {
+        "PG_SCHEMA": "public"
+      }
+    },
+    {
+      "name": "api-students",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 10,
+      "installDependency": true,
+      "envVariables": {
+        "PG_SCHEMA": "public"
+      }
+    }
+  ]
+}

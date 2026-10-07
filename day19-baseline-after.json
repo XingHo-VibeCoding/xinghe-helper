@@ -1,0 +1,493 @@
+{
+  "抓取时间": "2026-10-07T04:22:33.858Z",
+  "阶段": "重构后",
+  "环境": "https://xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com",
+  "说明": "Day 19 分层重构后的基线。与 day19-baseline-before.json 逐项对比 body 是否完全一致。",
+  "接口": [
+    {
+      "label": "GET /api/health",
+      "httpStatus": 200,
+      "body": {
+        "ok": true,
+        "service": "xinghe-helper"
+      },
+      "_ms": 1170
+    },
+    {
+      "label": "GET /api/rooms?camp_id=1",
+      "httpStatus": 200,
+      "body": {
+        "ok": true,
+        "data": [
+          {
+            "id": 101,
+            "camp_id": 1,
+            "room_no": "301",
+            "capacity": 4,
+            "gender_label": "女",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 102,
+            "camp_id": 1,
+            "room_no": "302",
+            "capacity": 4,
+            "gender_label": "男",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 103,
+            "camp_id": 1,
+            "room_no": "303",
+            "capacity": 3,
+            "gender_label": "女",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 104,
+            "camp_id": 1,
+            "room_no": "304",
+            "capacity": 6,
+            "gender_label": null,
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 109,
+            "camp_id": 1,
+            "room_no": "305",
+            "capacity": 4,
+            "gender_label": null,
+            "created_at": "2026-10-06T13:46:14.451615+08:00"
+          },
+          {
+            "id": 110,
+            "camp_id": 1,
+            "room_no": "306",
+            "capacity": 5,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:03:02.89143+08:00"
+          },
+          {
+            "id": 111,
+            "camp_id": 1,
+            "room_no": "307",
+            "capacity": 3,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:26:33.444212+08:00"
+          },
+          {
+            "id": 112,
+            "camp_id": 1,
+            "room_no": "308",
+            "capacity": 2,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:28:19.093247+08:00"
+          },
+          {
+            "id": 113,
+            "camp_id": 1,
+            "room_no": "309",
+            "capacity": 5,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:28:35.87588+08:00"
+          },
+          {
+            "id": 114,
+            "camp_id": 1,
+            "room_no": "310",
+            "capacity": 2,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:28:37.099918+08:00"
+          },
+          {
+            "id": 115,
+            "camp_id": 1,
+            "room_no": "312",
+            "capacity": 3,
+            "gender_label": null,
+            "created_at": "2026-10-06T14:29:32.380858+08:00"
+          },
+          {
+            "id": 116,
+            "camp_id": 1,
+            "room_no": "D19",
+            "capacity": 4,
+            "gender_label": null,
+            "created_at": "2026-10-06T18:29:50.02473+08:00"
+          }
+        ],
+        "error": null
+      },
+      "_ms": 1330
+    },
+    {
+      "label": "GET /api/rooms（缺 camp_id，应 400）",
+      "httpStatus": 400,
+      "body": {
+        "ok": false,
+        "data": null,
+        "error": {
+          "code": "MISSING_CAMP_ID",
+          "message": "缺少必填参数 camp_id(必须是正整数)"
+        }
+      },
+      "_ms": 109
+    },
+    {
+      "label": "GET /api/students?camp_id=1",
+      "httpStatus": 200,
+      "body": {
+        "ok": true,
+        "data": [
+          {
+            "id": 1,
+            "camp_id": 1,
+            "name": "林小满",
+            "gender": "女",
+            "teacher": "Mona",
+            "class_level": "星一",
+            "check_in_date": "2027-01-20",
+            "room_pref": 4,
+            "snore": false,
+            "sleep_quality": "好",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 101,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 2,
+            "camp_id": 1,
+            "name": "陈知夏",
+            "gender": "女",
+            "teacher": "Mona",
+            "class_level": "星一",
+            "check_in_date": "2027-01-20",
+            "room_pref": 4,
+            "snore": true,
+            "sleep_quality": "一般",
+            "note": "轻度打呼,自己知道",
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 101,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 3,
+            "camp_id": 1,
+            "name": "王一诺",
+            "gender": "女",
+            "teacher": "Mona",
+            "class_level": "星二",
+            "check_in_date": "2027-01-21",
+            "room_pref": 4,
+            "snore": false,
+            "sleep_quality": "差",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 101,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 4,
+            "camp_id": 1,
+            "name": "苏晚晴",
+            "gender": "女",
+            "teacher": "Selena",
+            "class_level": "星三",
+            "check_in_date": "2027-01-20",
+            "room_pref": 3,
+            "snore": false,
+            "sleep_quality": "好",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 103,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 5,
+            "camp_id": 1,
+            "name": "周砚",
+            "gender": "女",
+            "teacher": "Selena",
+            "class_level": "星三",
+            "check_in_date": "2027-01-20",
+            "room_pref": 3,
+            "snore": false,
+            "sleep_quality": "一般",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 103,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 6,
+            "camp_id": 1,
+            "name": "赵子昂",
+            "gender": "男",
+            "teacher": "Kiven",
+            "class_level": "星一",
+            "check_in_date": "2027-01-20",
+            "room_pref": 4,
+            "snore": true,
+            "sleep_quality": "好",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 102,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 7,
+            "camp_id": 1,
+            "name": "李昊然",
+            "gender": "男",
+            "teacher": "Kiven",
+            "class_level": "星一",
+            "check_in_date": "2027-01-21",
+            "room_pref": 4,
+            "snore": false,
+            "sleep_quality": "一般",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 102,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 8,
+            "camp_id": 1,
+            "name": "孙一飞",
+            "gender": "男",
+            "teacher": "Betty",
+            "class_level": "星二",
+            "check_in_date": "2027-01-20",
+            "room_pref": 6,
+            "snore": false,
+            "sleep_quality": "好",
+            "note": "想和赵子昂一间",
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 102,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 9,
+            "camp_id": 1,
+            "name": "何静姝",
+            "gender": "女",
+            "teacher": "Priya",
+            "class_level": "星二",
+            "check_in_date": "2027-01-21",
+            "room_pref": 2,
+            "snore": false,
+            "sleep_quality": "好",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": 103,
+            "assign_status": "已分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 10,
+            "camp_id": 1,
+            "name": "郑楚",
+            "gender": "男",
+            "teacher": "Betty",
+            "class_level": "星三",
+            "check_in_date": "2027-01-20",
+            "room_pref": 4,
+            "snore": false,
+            "sleep_quality": "好",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": null,
+            "assign_status": "未分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 11,
+            "camp_id": 1,
+            "name": "高远",
+            "gender": "男",
+            "teacher": "Kiven",
+            "class_level": "星二",
+            "check_in_date": "2027-01-21",
+            "room_pref": 2,
+            "snore": true,
+            "sleep_quality": "一般",
+            "note": null,
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": null,
+            "assign_status": "未分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          },
+          {
+            "id": 12,
+            "camp_id": 1,
+            "name": "沈知意",
+            "gender": "女",
+            "teacher": "Priya",
+            "class_level": "星一",
+            "check_in_date": "2027-01-20",
+            "room_pref": 3,
+            "snore": false,
+            "sleep_quality": "差",
+            "note": "认床,怕吵",
+            "is_latest": true,
+            "superseded_by": null,
+            "assigned_room_id": null,
+            "assign_status": "未分配",
+            "created_at": "2026-10-04T19:16:36.867547+08:00"
+          }
+        ],
+        "error": null
+      },
+      "_ms": 1623
+    },
+    {
+      "label": "GET /api/students（缺 camp_id，应 400）",
+      "httpStatus": 400,
+      "body": {
+        "ok": false,
+        "data": null,
+        "error": {
+          "code": "MISSING_CAMP_ID",
+          "message": "缺少必填参数 camp_id(必须是正整数)"
+        }
+      },
+      "_ms": 119
+    },
+    {
+      "label": "POST /api/rooms 缺 camp_id（应 400）",
+      "httpStatus": 400,
+      "body": {
+        "ok": false,
+        "data": null,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "缺少必填字段 camp_id(所属营期)"
+        }
+      },
+      "_ms": 103
+    },
+    {
+      "label": "POST /api/rooms 房号重复 301（应 409）",
+      "httpStatus": 409,
+      "body": {
+        "ok": false,
+        "data": null,
+        "error": {
+          "code": "ROOM_NO_DUPLICATED",
+          "message": "房号 301 已存在(房间 id=101,容量 4),请换一个房号"
+        }
+      },
+      "_ms": 226
+    },
+    {
+      "label": "POST /api/rooms 性别标签非法（应 400）",
+      "httpStatus": 400,
+      "body": {
+        "ok": false,
+        "data": null,
+        "error": {
+          "code": "VALIDATION_ERROR",
+          "message": "gender_label 只能是\"男\"或\"女\",当前收到:\"混合\""
+        }
+      },
+      "_ms": 109
+    },
+    {
+      "label": "POST /api/rooms 成功写入 D19B（会插数据）",
+      "httpStatus": 200,
+      "body": {
+        "ok": true,
+        "data": {
+          "id": 117
+        },
+        "error": null
+      },
+      "_ms": 362
+    }
+  ],
+  "摘要": [
+    {
+      "接口": "GET /api/health",
+      "httpStatus": 200,
+      "ok": true,
+      "errorCode": null,
+      "数据条数": 0
+    },
+    {
+      "接口": "GET /api/rooms?camp_id=1",
+      "httpStatus": 200,
+      "ok": true,
+      "errorCode": null,
+      "数据条数": 12
+    },
+    {
+      "接口": "GET /api/rooms（缺 camp_id，应 400）",
+      "httpStatus": 400,
+      "ok": false,
+      "errorCode": "MISSING_CAMP_ID",
+      "数据条数": 0
+    },
+    {
+      "接口": "GET /api/students?camp_id=1",
+      "httpStatus": 200,
+      "ok": true,
+      "errorCode": null,
+      "数据条数": 12
+    },
+    {
+      "接口": "GET /api/students（缺 camp_id，应 400）",
+      "httpStatus": 400,
+      "ok": false,
+      "errorCode": "MISSING_CAMP_ID",
+      "数据条数": 0
+    },
+    {
+      "接口": "POST /api/rooms 缺 camp_id（应 400）",
+      "httpStatus": 400,
+      "ok": false,
+      "errorCode": "VALIDATION_ERROR",
+      "数据条数": 0
+    },
+    {
+      "接口": "POST /api/rooms 房号重复 301（应 409）",
+      "httpStatus": 409,
+      "ok": false,
+      "errorCode": "ROOM_NO_DUPLICATED",
+      "数据条数": 0
+    },
+    {
+      "接口": "POST /api/rooms 性别标签非法（应 400）",
+      "httpStatus": 400,
+      "ok": false,
+      "errorCode": "VALIDATION_ERROR",
+      "数据条数": 0
+    },
+    {
+      "接口": "POST /api/rooms 成功写入 D19B（会插数据）",
+      "httpStatus": 200,
+      "ok": true,
+      "errorCode": null,
+      "数据条数": 1
+    }
+  ]
+}

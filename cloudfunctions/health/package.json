@@ -1,0 +1,8 @@
+{
+  "name": "health",
+  "version": "1.0.0",
+  "description": "xinghe-helper 健康检查云函数：返回服务在线状态",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {}
+}

@@ -1,0 +1,10 @@
+{
+  "name": "api-rooms",
+  "version": "1.0.0",
+  "description": "xinghe-helper 接口：GET /api/rooms 读取房间列表",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
+  }
+}

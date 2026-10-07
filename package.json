@@ -1,0 +1,9 @@
+{
+  "name": "xinghe-helper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "xinghe-helper 云端部署侧配置：CloudBase CLI 与本项目云函数(cloudfunctions/)的宿主目录。前端项目在 web/ 子目录内。",
+  "devDependencies": {
+    "@cloudbase/cli": "^3.8.5"
+  }
+}
