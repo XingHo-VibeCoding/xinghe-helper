@@ -31,7 +31,7 @@
 //   2. 每个响应都带上 origin,让浏览器判断自己能不能读这个响应。
 
 const studentsRepo = require('./students.repo.js')
-const { ok, fail, originOf } = require('./response.js')
+const { ok, fail, failServer, originOf } = require('./response.js')
 const { handlePreflight } = require('./cors.js')
 
 // ============================================================
@@ -78,13 +78,13 @@ async function listStudents(event, origin) {
 
     if (error) {
       console.error('[api-students] 查询失败:', error)
-      return fail(500, 'DB_ERROR', '读取学生失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('读取学生失败', 'DB_ERROR', origin)
     }
 
     return ok(data ?? [], origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -103,7 +103,7 @@ async function getCamp(event, origin) {
     const { data, error } = await studentsRepo.findCampById(campId)
     if (error) {
       console.error('[api-students] 查询营期失败:', error)
-      return fail(500, 'DB_ERROR', '读取营期失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('读取营期失败', 'DB_ERROR', origin)
     }
     if (!data) {
       return fail(404, 'CAMP_NOT_FOUND', `营期不存在(camp_id=${campId})`, origin)
@@ -111,7 +111,7 @@ async function getCamp(event, origin) {
     return ok(data, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -178,7 +178,7 @@ async function submitStudent(event, origin) {
     const { data: camp, error: campErr } = await studentsRepo.findCampById(campId)
     if (campErr) {
       console.error('[api-students] 查营期失败:', campErr)
-      return fail(500, 'DB_ERROR', '校验营期失败:' + (campErr.message || '数据库返回错误'), origin)
+      return failServer('校验营期失败', 'DB_ERROR', origin)
     }
     if (!camp) {
       return fail(400, 'CAMP_NOT_FOUND', `营期不存在(camp_id=${campId}),请先创建营期`, origin)
@@ -202,7 +202,7 @@ async function submitStudent(event, origin) {
       if (insertErr.code === '23503') {
         return fail(400, 'CAMP_NOT_FOUND', `营期不存在(camp_id=${campId}),请先创建营期`, origin)
       }
-      return fail(500, 'DB_ERROR', '提交失败:' + (insertErr.message || '数据库返回错误'), origin)
+      return failServer('提交失败', 'DB_ERROR', origin)
     }
 
     // 重复提交:保留全部提交痕迹,但把旧的标成 is_latest=false,
@@ -223,7 +223,7 @@ async function submitStudent(event, origin) {
     return ok({ id: created.id, updated: (historyCount ?? 0) > 0 }, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -265,7 +265,7 @@ async function assignStudent(event, origin) {
     const { data, error } = await studentsRepo.setRoom(studentId, roomId)
     if (error) {
       console.error('[api-students] 分配学生失败:', error)
-      return fail(500, 'DB_ERROR', '保存分配结果失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('保存分配结果失败', 'DB_ERROR', origin)
     }
     // maybeSingle 会返回 null(学生不存在),single() 则报错。
     //   这里用 .single(),不存在时会抛错落到 catch,所以再补一层判断更稳。
@@ -275,7 +275,7 @@ async function assignStudent(event, origin) {
     return ok(data, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -331,12 +331,12 @@ async function applyAssignments(event, origin) {
     const { error, appliedCount } = await studentsRepo.applyAssignments(assignments, clearStudentIds)
     if (error) {
       console.error('[api-students] 批量分配失败:', error)
-      return fail(500, 'DB_ERROR', '批量分配失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('批量分配失败', 'DB_ERROR', origin)
     }
     return ok({ applied_count: appliedCount }, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -364,12 +364,12 @@ async function saveHistory(event, origin) {
     const { data, error } = await studentsRepo.saveHistory(campId, body.snapshot)
     if (error) {
       console.error('[api-students] 保存快照失败:', error)
-      return fail(500, 'DB_ERROR', '保存分房快照失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('保存分房快照失败', 'DB_ERROR', origin)
     }
     return ok({ id: data.id }, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -384,7 +384,7 @@ async function getLatestHistory(event, origin) {
     const { data, error } = await studentsRepo.latestHistory(campId)
     if (error) {
       console.error('[api-students] 读取快照失败:', error)
-      return fail(500, 'DB_ERROR', '读取分房快照失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('读取分房快照失败', 'DB_ERROR', origin)
     }
 
     // 没找到 = 从没点过"AI 分房",这不是错误。
@@ -395,7 +395,7 @@ async function getLatestHistory(event, origin) {
     return ok({ snapshot: row.snapshot, created_at: row.created_at }, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 

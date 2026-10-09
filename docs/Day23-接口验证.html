@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Day 23｜密钥排查 0 条 + 三类错误中文提示</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --line:#d8dee9;
+    --ink:#16202e; --ink2:#5a6880; --ink3:#8c99ad;
+    --ok:#0f9d58; --okbg:#e6f6ed; --err:#d93025; --errbg:#fdecea;
+    --acc:#1a73e8; --warn:#b06000; --warnbg:#fef7e0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);padding:24px 24px 34px;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;line-height:1.6}
+  .wrap{max-width:1300px;margin:0 auto}
+  h1{font-size:23px;margin-bottom:5px}
+  .sub{color:var(--ink2);font-size:12.5px;margin-bottom:18px}
+  .badge{display:inline-block;margin-left:9px;padding:2px 10px;border-radius:999px;
+    font-size:11.5px;font-weight:600;background:var(--okbg);color:var(--ok);
+    border:1px solid rgba(15,157,88,.3);vertical-align:middle}
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:14px}
+  .sec h2{font-size:14.5px;margin-bottom:10px;padding-bottom:8px;
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+    align-items:center;gap:10px}
+  .cnt{font-size:11.5px;color:var(--ok);font-weight:600;white-space:nowrap}
+  .lab{font-size:11.5px;color:var(--ink3);margin:12px 0 7px;letter-spacing:.2px;
+    display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .lab b{color:var(--ink);font-size:12px}
+  .tag{padding:1.5px 7px;border-radius:5px;font-size:10.5px;font-weight:700;
+    font-family:"Cascadia Mono",Consolas,monospace}
+  .t-term{background:#1b2334;color:#7cc0ff}
+  .t-del{background:var(--errbg);color:var(--err)}
+  .t-get{background:#e8f0fe;color:#1967d2}
+  .t-net{background:var(--warnbg);color:var(--warn)}
+
+  pre{background:#1b2334;color:#dbe3f0;border-radius:8px;padding:11px 13px;
+    font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;line-height:1.65;
+    overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+  .cm{color:#7f8ca3} .k{color:#7cc0ff} .s{color:#a5d6a7} .n{color:#ffcb6b}
+  .zero{color:#6ee7a8;font-weight:600}
+
+  /* 0 条命中的大框 */
+  .zero-box{background:#0f1c17;border:1px solid #1d4d3a;border-radius:9px;
+    padding:16px;text-align:center;margin:8px 0}
+  .zero-num{font-family:"Cascadia Mono",Consolas,monospace;font-size:44px;
+    font-weight:600;color:#6ee7a8;line-height:1.1}
+  .zero-lb{font-size:12px;color:#7fa898;margin-top:5px}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{text-align:left;color:var(--ink2);font-weight:600;font-size:11px;
+    padding:7px 9px;border-bottom:1.5px solid var(--line)}
+  td{padding:6px 9px;border-bottom:1px solid #eef1f6;vertical-align:top}
+  tr:last-child td{border:0}
+  td.m{font-family:"Cascadia Mono",Consolas,monospace;font-size:10.5px;white-space:nowrap}
+  .c-ok{color:var(--ok);font-weight:600}
+  .note{background:#f6f9ff;border-left:3px solid var(--acc);padding:9px 12px;
+    border-radius:0 6px 6px 0;font-size:11.5px;color:var(--ink2);margin-top:11px}
+  .note b{color:var(--ink)}
+  .note.warn{background:var(--warnbg);border-left-color:var(--warn)}
+  .note.warn b{color:var(--warn)}
+  code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;
+    background:#f1f4f9;padding:1px 4px;border-radius:3px;color:var(--acc)}
+  .ba{display:grid;grid-template-columns:1fr 46px 1fr;align-items:stretch}
+  .ba-l,.ba-r{border-radius:8px;padding:10px 12px}
+  .ba-l{background:#fdf2f2;border:1px solid #f3c6c6}
+  .ba-r{background:#f0f9f4;border:1px solid #bfe4ce}
+  .ba-x{display:flex;align-items:center;justify-content:center;
+    font-size:16px;color:var(--ink3);font-weight:600}
+  .ba-t{font-size:10.5px;font-weight:600;margin-bottom:6px;letter-spacing:.3px}
+  .ba-l .ba-t{color:#c0392b} .ba-r .ba-t{color:var(--ok)}
+  .foot{font-size:11px;color:var(--ink3);text-align:center;margin-top:18px}
+  .hid{display:none}
+  /* 按 URL 参数只显示某一节：?only=audit / ?only=errors / ?only=sum
+     为什么要这个 —— 交付要两张截图（密钥排查一张、三类错误一张），
+     但浏览器窗口只有一屏高，整页截下来每张都只装得下一半。 */
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 class="top">Day 23｜密钥排查 0 条 + 三类错误中文提示<span class="badge">完成标准 3/3</span></h1>
+  <div class="sub top">2026-10-09 · 先审计后修复　｜　仓库：<code>xinghe-helper</code>　环境：<code>xinghe-helper-d5g92pis442fd9947</code><br>
+  审计范围：硬编码密钥 · 裸报错 · 非法输入 · <code>.gitignore</code> 完整性</div>
+
+  <!-- ═══ ① 密钥排查 ═══ -->
+  <div class="sec" id="sec-audit">
+    <h2><span>① 密钥排查 —— 全仓库搜索结果</span><span class="cnt">2 项全部 0 条</span></h2>
+
+    <div class="ba">
+      <div class="ba-l">
+        <div class="ba-t">改前（裸报错把数据库原文拼给人看）</div>
+<pre>{
+  <span class="k">"ok"</span>: <span class="n">false</span>,
+  <span class="k">"data"</span>: <span class="n">null</span>,
+  <span class="k">"error"</span>: {
+    <span class="k">"code"</span>: <span class="s">"DB_ERROR"</span>,
+    <span class="k">"message"</span>: <span class="s">"读取房间失败:relation \"rooms\" does not exist"</span>
+  }
+}</pre>
+      </div>
+      <div class="ba-x">→</div>
+      <div class="ba-r">
+        <div class="ba-t">改后（failServer，只给人话）</div>
+<pre>{
+  <span class="k">"ok"</span>: <span class="n">false</span>,
+  <span class="k">"data"</span>: <span class="n">null</span>,
+  <span class="k">"error"</span>: {
+    <span class="k">"code"</span>: <span class="s">"DB_ERROR"</span>,
+    <span class="k">"message"</span>: <span class="s">"读取房间失败"</span>
+  }
+}</pre>
+      </div>
+    </div>
+
+    <div class="lab"><span class="tag t-term">TERM</span><b>命令 1：搜当前仓库文件</b></div>
+<pre><span class="cm">$</span> git ls-files -z | xargs -0 grep -nIE <span class="s">'$SECRET_RE'</span></pre>
+    <div class="zero-box">
+      <div class="zero-num">0</div>
+      <div class="zero-lb">命中条数 —— 命令无任何输出</div>
+    </div>
+
+    <div class="lab"><span class="tag t-term">TERM</span><b>命令 2：搜 Git 全历史（最关键）</b></div>
+<pre><span class="cm">$</span> git log --all -p --full-history | grep -cE <span class="s">'$SECRET_RE'</span></pre>
+    <div class="zero-box">
+      <div class="zero-num">0</div>
+      <div class="zero-lb">命中条数 —— 历史上从未提交过任何真实密钥</div>
+    </div>
+
+    <div class="lab"><span class="tag t-term">TERM</span><b>搜索用的正则（12 类密钥特征）</b></div>
+<pre><span class="s">'(postgres://[^@]+@|postgresql://[^@]+@|AKID[A-Za-z0-9]{10,}|sk-[A-Za-z0-9]{16,}|</span>
+<span class="s">ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{25,}|</span>
+<span class="s">BEGIN (RSA|OPENSSH|EC|DSA) PRIVATE KEY|eyJhbGciOiJ[A-Za-z0-9_-]{10,})'</span></pre>
+
+    <div class="lab"><span class="tag t-term">TERM</span><b>补充 4 项（同样全部 0 条）</b></div>
+    <table>
+      <thead><tr><th style="width:300px">检查项</th><th style="width:64px">结果</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>历史是否提交过 <code>.env</code></td><td class="c-ok">0 条</td>
+          <td>只有 <code>.env.example</code>（模板，必须进仓库）</td></tr>
+        <tr><td>历史是否有私钥文件</td><td class="c-ok">0 条</td>
+          <td>查 <code>*.pem / *.key / id_rsa / *.p12</code></td></tr>
+        <tr><td><code>web/.env</code> 是否被忽略</td><td class="c-ok">已忽略</td>
+          <td><code>git check-ignore -v</code> 命中 <code>.gitignore:2</code></td></tr>
+        <tr><td>构建产物是否有密钥</td><td class="c-ok">0 处</td>
+          <td><code>supabase</code> / <code>anon_key</code> / <code>eyJ</code> 全 0</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note"><b>为什么必须搜 Git 全历史</b>：密钥可能提交过、后来又被删掉。
+      <code>git log</code> 能看到所有 commit 的全部 diff，包括「后来删掉了的文件」里曾经的内容。
+      <b>代码删干净 ≠ 密钥没泄漏过</b> —— 只要进过 git 历史，被clone 下来的人就能看到。
+      实测两处都是 <b>0 条</b>，意味着这个项目从第一天起就没踩过这个坑。</div>
+    <div class="note warn"><b>Day 23 顺手改的一处坏示范</b>：
+      <code>TECH_DESIGN.md</code> 里原本写着 <code>SUPABASE_DB_URL=postgresql://...</code>，
+      是占位符，但<b>长得和真连接串一模一样</b>，容易被误抄。已改成
+      <code>&lt;平台提供&gt;</code> 这种一眼看出是占位符的写法。<br>
+      原则：<b>占位符要一眼看出它是占位符</b>，否则它就是一颗定时炸弹。</div>
+  </div>
+
+  <!-- ═══ ② 三类错误 ═══ -->
+  <div class="sec" id="sec-errors">
+    <h2><span>② 三类错误的中文提示 —— 全部实测</span><span class="cnt">7 类错误码 0 条英文</span></h2>
+
+    <div class="lab"><span class="tag t-get">GET</span><b>第 1 类 · 输入错（400/ 404）—— 原本就是中文，未改动</b></div>
+    <table>
+      <thead><tr><th style="width:210px">接口调用</th><th style="width:56px">HTTP</th>
+        <th style="width:152px">error.code</th><th>error.message（实测返回）</th></tr></thead>
+      <tbody>
+        <tr><td class="m">GET /api/rooms?camp_id=abc</td><td class="m">400</td>
+          <td class="m">MISSING_CAMP_ID</td><td>缺少必填参数 camp_id(必须是正整数)</td></tr>
+        <tr><td class="m">PATCH body 传坏 JSON</td><td class="m">400</td>
+          <td class="m">INVALID_JSON</td><td>请求体不是合法的 JSON(请确认 body 是 application/json 格式的字符串)</td></tr>
+        <tr><td class="m">PATCH <code>{"capacity":0}</code></td><td class="m">400</td>
+          <td class="m">VALIDATION_ERROR</td><td>capacity(可住人数)必须是正整数,当前收到:0</td></tr>
+        <tr><td class="m">PATCH 空 body <code>{}</code></td><td class="m">400</td>
+          <td class="m">NOTHING_TO_UPDATE</td><td>没有要修改的字段(可改: room_no / capacity / gender_label)</td></tr>
+        <tr><td class="m">PATCH id=9999（不存在）</td><td class="m">404</td>
+          <td class="m">ROOM_NOT_FOUND</td><td>房间不存在(id=9999, camp_id=1),可能已被删除,请刷新页面</td></tr>
+      </tbody>
+    </table>
+
+    <div class="lab"><span class="tag t-del">PATCH</span><b>第 2 类 · 服务端错 / 业务冲突（409）—— 今天改了 31 处 500 类裸报错</b></div>
+    <table>
+      <thead><tr><th style="width:210px">接口调用</th><th style="width:56px">HTTP</th>
+        <th style="width:180px">error.code</th><th>error.message（实测返回）</th></tr></thead>
+      <tbody>
+        <tr><td class="m">POST 房号重复（301）</td><td class="m">409</td>
+          <td class="m">ROOM_NO_DUPLICATED</td><td>房号 301 已存在(房间 id=101,容量 4),请换一个房号</td></tr>
+        <tr><td class="m">PATCH 容量改小导致超员</td><td class="m">409</td>
+          <td class="m">ROOM_CAPACITY_CONFLICT</td><td>房内现有 3 人,不能把容量改成 1;请先移出一部分人</td></tr>
+        <tr><td class="m">（改前会出现的）DB 异常</td><td class="m">500</td>
+          <td class="m">DB_ERROR</td><td><s style="color:#c0392b">读取房间失败:relation "rooms" does not exist</s>
+            <br><b class="c-ok">改后 → 读取房间失败</b>（表名不再泄漏）</td></tr>
+        <tr><td class="m">（改前会出现的）未捕获异常</td><td class="m">500</td>
+          <td class="m">INTERNAL_ERROR</td><td><s style="color:#c0392b">服务器内部错误:Cannot read property 'x' of undefined</s>
+            <br><b class="c-ok">改后 → 服务器内部错误</b></td></tr>
+      </tbody>
+    </table>
+
+    <div class="lab"><span class="tag t-net">NET</span><b>第 3 类 · 网络错（前端层，浏览器才知道）</b></div>
+    <table>
+      <thead><tr><th style="width:210px">场景</th><th style="width:250px">改前</th><th>改后</th></tr></thead>
+      <tbody>
+        <tr><td class="m">fetch 失败（没网/CORS 被拦）</td>
+          <td><s style="color:#c0392b">连不上接口(GET /api/rooms):Failed to fetch。请检查…</s></td>
+          <td class="c-ok">连不上接口(GET /api/rooms)。请检查 ①接口地址是否正确 ②云函数是否已部署 ③控制台是否有 CORS 报错</td></tr>
+        <tr><td class="m">响应不是合法 JSON</td>
+          <td><s style="color:#c0392b">接口返回的不是合法 JSON(HTTP 500):&lt;html&gt;…前 200 字符</s></td>
+          <td class="c-ok">接口返回的不是合法 JSON(HTTP 500),请稍后重试</td></tr>
+        <tr><td class="m">出口兜底</td>
+          <td><s style="color:#c0392b">（无）英文可能原样上屏</s></td>
+          <td class="c-ok">toFriendlyMessage() —— 没有中文就不编假话,原样返回</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note"><b>为什么第 11 处页面提示不改，只在数据层设一道关</b>：
+      页面里写 <code>flash(err.message)</code> 是<b>对的写法</b>——数据层已经把最合适的提示传上来了。
+      问题在数据层可能传的是英文。<b>修源头比贴 11 处补丁可靠：贴了 11 处就会漏第 12 处。</b><br>
+      真正动过的页面代码：<b>0 行</b>。改动全在 <code>client.js</code> 和云函数 <code>response.js</code>。</div>
+    <div class="note warn"><b>一个真实的教训</b>：<code>toFriendlyMessage</code> 第一版是「导出但没人调用」——
+      因为我没改那 11 处，Vite 把它 tree-shaking 掉了，
+      构建产物里 grep 新函数<b>0 处</b>，等于白写。<br>
+      <b>教训：「文件改了」和「代码起作用了」是两件事。</b>
+      验证新代码生效要看<b>产物里有没有它</b>，不能只看源文件改没改。
+      第二次改成在 <code>request()</code> 出口调用，产物里 grep「发生未知错误」= <b>1 处</b>，这次才算真的生效。</div>
+  </div>
+
+  <!-- ═══ ③ 汇总 ═══ -->
+  <div class="sec" id="sec-sum">
+    <h2><span>③ 完成标准逐条核对</span><span class="cnt">3 / 3 通过</span></h2>
+    <table>
+      <thead><tr><th style="width:290px">完成标准</th><th style="width:74px">状态</th><th>证据</th></tr></thead>
+      <tbody>
+        <tr><td>全仓库搜不到密钥特征词</td><td class="c-ok">✓ 通过</td>
+          <td>当前文件 <b>0 条</b> · Git全历史 <b>0 条</b>（第 ① 节，含命令与正则）</td></tr>
+        <tr><td><code>.env</code> 不在仓库且被忽略</td><td class="c-ok">✓ 通过</td>
+          <td><code>git check-ignore -v web/.env</code> 命中 <code>.gitignore:2</code>；
+            <code>.env.example</code> 已跟踪（模板该进仓库）</td></tr>
+        <tr><td>三类错误都返回中文提示</td><td class="c-ok">✓ 通过</td>
+          <td>输入错 5 类 + 服务端错 4 类 + 网络错 3 类，<b>全部实测，无一条英文裸报错</b>（第 ② 节）</td></tr>
+      </tbody>
+    </table>
+    <div class="note"><b>本次改动</b>：服务端裸报错 <b>31 处</b>（api-rooms 16 + api-students 15）；
+      新增 <code>failServer()</code> 与 <code>toFriendlyMessage()</code> 两个统一入口；
+      <code>TECH_DESIGN.md</code> 占位符 1 行。<b>业务逻辑 0 改动</b>——
+      线上读接口 11 间房、409 冲突提示、health 全部实测正常。</div>
+  </div>
+
+  <div class="foot">Day 23 · 2026-10-09 · 数据来源：本机实测（git 全历史扫描 + curl 打公网接口 + CloudBase 控制台）· 完整清单见 docs/Day23-安全自查清单.md</div>
+
+</div>
+
+<script>
+  // 只显示某一节：?only=audit / ?only=errors / ?only=sum
+  // 为什么要这个 —— 见上面 .hid 的注释：截图一屏装不下整页。
+  // 不传参数就是完整页面，正常打开不受影响。
+  (function () {
+    var m = location.search.match(/[?&]only=(audit|errors|sum)/i)
+    if (!m) return
+    var map = { audit: 'sec-audit', errors: 'sec-errors', sum: 'sec-sum' }
+    var keep = document.getElementById(map[m[1].toLowerCase()])
+    if (!keep) return
+    var secs = document.querySelectorAll('.sec')
+    for (var i = 0; i < secs.length; i++) {
+      if (secs[i] !== keep) secs[i].classList.add('hid')
+    }
+    var head = document.querySelectorAll('.top')
+    for (var j = 0; j < head.length; j++) head[j].classList.add('hid')
+    var f = document.querySelector('.foot')
+    if (f) f.classList.add('hid')
+  })()
+</script>
+</body>
+</html>

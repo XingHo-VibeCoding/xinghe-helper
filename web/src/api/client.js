@@ -59,6 +59,45 @@ if (useMockData) {
 export const CAMP_ID = Number(import.meta.env.VITE_CAMP_ID || 1)
 
 // ============================================================
+// Day 23 新增|toFriendlyMessage() —— 最后一道中文兜底
+// ============================================================
+// 今天的核心认识:错误提示要「说人话」,但人话不该散落在几十个页面里。
+//
+// 为什么服务端改完了还需要这个?
+//   服务端把 500 类改成中文了(见云函数 response.js 的 failServer),
+//   前端的网络错也改成了中文。但 request() 里能throw 的地方有四个,
+//   谁能保证以后不新增第五个?所以在**出口**再设一道关:
+//   所有抛出去的 Error,一律先过一遍这个函数。
+//
+// ⚠️ 一个真实的教训(今天踩到的):
+//   这个函数第一版是「导出但没人调用」—— 因为页面那 11 处写的是
+//   flash(err.message),而我判断「页面直接显示数据层的提示是对的写法」。
+//   结果构建产物里 grep「连不上服务器」0 处,新函数被 Vite tree-shaking
+//   掉了,等于白写。
+//   **教训:验证「新代码生效」要看产物里有没有它,不能只看源文件改没改。**
+//   「文件改了」和「代码起作用了」是两件事。
+//
+// 这个函数现在只做一件事:**拦住英文**。
+// 原来这里有一张「英文报错 → 中文」的翻译表(Failed to fetch / timeout /
+// ERR_CONNECTION_REFUSED / SSL……),Day 23 删掉了 ——
+// 因为那四种情况**已经在 request() 里改掉了**:
+//   · fetch 失败 → catch 分支已改成「连不上接口(方法 路径)。请检查①②③」
+//   · 响应不是 JSON → 已改成「接口返回的不是合法 JSON(HTTP xxx),请稍后重试」
+// 而浏览器抛出的英文报错,只要没进这两个分支,就说明是更底层的问题,
+// 硬翻成「连不上服务器」反而可能把排查方向带偏。
+// 所以规则只有一条:**没有中文就不编一句假话,原样返回(至少是真话)。**
+export function toFriendlyMessage(err) {
+  const raw = err?.message || '发生未知错误'
+
+  // 已经是我们写过的人话(含中文)→ 原样返回,别二次加工。
+  //   这条分支让函数「幂等」: 已经是中文的进来,出去还是它自己。
+  if (/[\u4e00-\u9fa5]/.test(raw)) return raw
+
+  // 没有中文 → 不编一句假提示,原样返回(至少是真话)
+  return raw
+}
+
+// ============================================================
 // 核心:发一个请求并拆统一信封
 // ============================================================
 // 后端所有接口都返回 { ok, data, error }。这里把「拆信封」这一步收在一处,
@@ -91,8 +130,16 @@ async function request(path, { method = 'GET', body, query } = {}) {
   } catch (err) {
     // fetch 本身失败 = 网络层问题(没网、地址写错、CORS 被拦、服务没起)
     //   这跟「接口回了 ok:false」是两回事,所以给一句能直接照着排查的话。
+    //
+    // ⚠️ Day 23 改动:不再把 err.message 拼进人话里。
+    //   改前:「连不上接口(GET /api/rooms):Failed to fetch。请检查①②③」
+    //   改后:「连不上接口(GET /api/rooms)。请检查①②③」
+    //   原因:fetch 的原生报错是英文的(Failed to fetch / NetworkError /
+    //   ERR_CONNECTION_REFUSED),对非技术用户没有任何信息量,还会让人以为是
+    //   自己的电脑坏了。排查要用的信息一点没丢 —— 方法和路径都在,
+    //   F12 的 Network 面板里能看到真实的浏览器报错,那才是给排查用的。
     throw new Error(
-      `连不上接口(${method} ${path}):${err.message}。请检查 ①web/.env 里的 VITE_API_BASE_URL 是否正确 ②云函数是否已部署 ③浏览器控制台是否有 CORS 报错`,
+      `连不上接口(${method} ${path})。请检查 ①web/.env 里的 VITE_API_BASE_URL 是否正确 ②云函数是否已部署 ③浏览器控制台是否有 CORS 报错`,
     )
   }
 
@@ -102,17 +149,23 @@ async function request(path, { method = 'GET', body, query } = {}) {
   try {
     payload = text ? JSON.parse(text) : null
   } catch {
-    throw new Error(`接口返回的不是合法 JSON(HTTP ${res.status}):${text.slice(0, 200)}`)
+    // 同样不把原始响应体贴出来 —— 它可能有几百字节 HTML 错误页,
+    //   塞进提示里既难看又可能带内部信息。只说「格式不对」这个事实。
+    throw new Error(`接口返回的不是合法 JSON(HTTP ${res.status}),请稍后重试`)
   }
 
   if (!payload) {
-    throw new Error(`接口返回空响应(HTTP ${res.status})`)
+    throw new Error(`接口返回空响应(HTTP ${res.status}),请稍后重试`)
   }
 
   if (!payload.ok) {
     const e = new Error(payload.error?.message || `接口返回失败(HTTP ${res.status})`)
     e.code = payload.error?.code || 'UNKNOWN'
     e.httpStatus = res.status
+    // Day 23:出口再过一道 toFriendlyMessage。
+    //   后端今天起所有提示都是中文,所以这里通常是「原样返回」——
+    //   但万一某个接口漏改了、或将来新接口忘了,至少不会把英文原样弹到页面上。
+    e.message = toFriendlyMessage(e)
     throw e
   }
 

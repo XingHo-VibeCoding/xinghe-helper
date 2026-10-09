@@ -292,9 +292,13 @@ VITE_API_BASE=https://xxxx.supabase.co/functions/v1   # Edge Function 基址
 
 **Supabase / Vercel（不进仓库，控制台或 Secrets 配置）**：
 ```
-SUPABASE_DB_URL=postgresql://...        # 平台提供，本地 supabase start 自动注入
-SUPABASE_SERVICE_ROLE_KEY=xxx           # 仅服务端用，绝不进前端
-ADMIN_TOKEN=xxxx                        # A5：组织者写接口头校验（建议设）
+# ⚠️ Day 23 改动：下面三行原来是 postgresql://... / xxx / xxxx 这种「长得像真密钥」的占位符。
+#   问题是它们和真实连接串长得一模一样 —— 容易被误抄进代码或误当成真的配置值。
+#   现在改成明显不是密钥的写法。记住这个原则：
+#   **占位符要一眼看出它是占位符**，否则它就是一颗定时炸弹。
+SUPABASE_DB_URL=<平台提供，本地 supabase start 自动注入>   # 不用时留空
+SUPABASE_SERVICE_ROLE_KEY=<仅服务端用，绝不进前端>
+ADMIN_TOKEN=<组织者写接口头校验，建议设>
 ```
 > 规则：Service Role Key 与 token 只存 Supabase Secrets / Vercel 环境变量，代码里 `Deno.env.get(...)` 读取，**绝不硬编码、绝不提交**。anon key 可放前端（Supabase 设计如此，靠 RLS 策略限制写权限）。
 

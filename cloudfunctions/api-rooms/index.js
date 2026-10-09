@@ -29,7 +29,7 @@
 //   以后要查什么,先在 rooms.repo.js 里加一个方法,再从这里调它。
 //   这样「数据从哪来」永远只有一个答案,改查询不会碰到校验和错误提示。
 const roomsRepo = require('./rooms.repo.js')
-const { ok, fail, originOf } = require('./response.js')
+const { ok, fail, failServer, originOf } = require('./response.js')
 const { handlePreflight } = require('./cors.js')
 
 // ============================================================
@@ -91,14 +91,14 @@ async function listRooms(event, origin) {
 
     if (error) {
       console.error('[api-rooms] 查询失败:', error)
-      return fail(500, 'DB_ERROR', '读取房间失败:' + (error.message || '数据库返回错误'), origin)
+      return failServer('读取房间失败', 'DB_ERROR', origin)
     }
 
     // ---- 3. 返回统一形状 ----
     return ok(data ?? [], origin)
   } catch (err) {
     console.error('[api-rooms] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -146,7 +146,7 @@ async function createRoom(event, origin) {
 
     if (campErr) {
       console.error('[api-rooms] 查营期失败:', campErr)
-      return fail(500, 'DB_ERROR', '校验营期失败:' + (campErr.message || '数据库返回错误'), origin)
+      return failServer('校验营期失败', 'DB_ERROR', origin)
     }
 
     // maybeSingle():查不到返回 { data: null } 而不是报错。
@@ -160,7 +160,7 @@ async function createRoom(event, origin) {
 
     if (dupErr) {
       console.error('[api-rooms]查重复失败:', dupErr)
-      return fail(500, 'DB_ERROR', '校验房号是否重复失败:' + (dupErr.message || '数据库返回错误'), origin)
+      return failServer('校验房号是否重复失败', 'DB_ERROR', origin)
     }
 
     // 命中 = 同营期已有这个房号 → 按契约 2.6 拒绝(409),不覆盖已有数据。
@@ -198,7 +198,7 @@ async function createRoom(event, origin) {
         return fail(400, 'CAMP_NOT_FOUND', `营期不存在(camp_id=${campId}),请先创建营期`, origin)
       }
 
-      return fail(500, 'DB_ERROR', '新建房间失败:' + (insertErr.message || '数据库返回错误'), origin)
+      return failServer('新建房间失败', 'DB_ERROR', origin)
     }
 
     // ---- 5. 返回统一形状 ----
@@ -207,7 +207,7 @@ async function createRoom(event, origin) {
     return ok({ id: created.id }, origin)
   } catch (err) {
     console.error('[api-rooms] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -276,7 +276,7 @@ async function updateRoom(event, origin) {
     const { data: room, error: findErr } = await roomsRepo.findById(roomId, campId)
     if (findErr) {
       console.error('[api-rooms] 查询待改房间失败:', findErr)
-      return fail(500, 'DB_ERROR', '读取房间失败:' + (findErr.message || '数据库返回错误'), origin)
+      return failServer('读取房间失败', 'DB_ERROR', origin)
     }
     if (!room) {
       return fail(404, 'ROOM_NOT_FOUND', `房间不存在(id=${roomId}, camp_id=${campId}),可能已被删除,请刷新页面`, origin)
@@ -288,7 +288,7 @@ async function updateRoom(event, origin) {
       const { data: existed, error: dupErr } = await roomsRepo.findByRoomNo(campId, patch.room_no)
       if (dupErr) {
         console.error('[api-rooms] 改房号时查重失败:', dupErr)
-        return fail(500, 'DB_ERROR', '校验房号是否重复失败:' + (dupErr.message || '数据库返回错误'), origin)
+        return failServer('校验房号是否重复失败', 'DB_ERROR', origin)
       }
       if (existed) {
         return fail(409, 'ROOM_NO_DUPLICATED', `房号 ${patch.room_no} 已存在(房间 id=${existed.id}),请换一个房号`, origin)
@@ -301,7 +301,7 @@ async function updateRoom(event, origin) {
       const { data: occupants, error: occErr } = await roomsRepo.findOccupants(roomId)
       if (occErr) {
         console.error('[api-rooms] 统计房间人数失败:', occErr)
-        return fail(500, 'DB_ERROR', '读取房间人数失败:' + (occErr.message || '数据库返回错误'), origin)
+        return failServer('读取房间人数失败', 'DB_ERROR', origin)
       }
       const current = (occupants || []).length
       if (current > patch.capacity) {
@@ -320,13 +320,13 @@ async function updateRoom(event, origin) {
       if (updErr.code === '23505') {
         return fail(409, 'ROOM_NO_DUPLICATED', `房号 ${patch.room_no} 已存在,请换一个房号`, origin)
       }
-      return fail(500, 'DB_ERROR', '修改房间失败:' + (updErr.message || '数据库返回错误'), origin)
+      return failServer('修改房间失败', 'DB_ERROR', origin)
     }
 
     return ok(updated, origin)
   } catch (err) {
     console.error('[api-rooms] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
@@ -353,7 +353,7 @@ async function deleteRoom(event, origin) {
     const { data: room, error: findErr } = await roomsRepo.findById(roomId, campId)
     if (findErr) {
       console.error('[api-rooms] 查询待删房间失败:', findErr)
-      return fail(500, 'DB_ERROR', '读取房间失败:' + (findErr.message || '数据库返回错误'), origin)
+      return failServer('读取房间失败', 'DB_ERROR', origin)
     }
     if (!room) {
       return fail(404, 'ROOM_NOT_FOUND', `房间不存在(id=${roomId}, camp_id=${campId}),可能已被删除,请刷新页面`, origin)
@@ -363,7 +363,7 @@ async function deleteRoom(event, origin) {
     const { data: occupants, error: occErr } = await roomsRepo.findOccupants(roomId)
     if (occErr) {
       console.error('[api-rooms] 统计房间人数失败:', occErr)
-      return fail(500, 'DB_ERROR', '读取房间人数失败:' + (occErr.message || '数据库返回错误'), origin)
+      return failServer('读取房间人数失败', 'DB_ERROR', origin)
     }
     const count = (occupants || []).length
 
@@ -372,7 +372,7 @@ async function deleteRoom(event, origin) {
       const { error: relErr } = await roomsRepo.releaseOccupants(roomId)
       if (relErr) {
         console.error('[api-rooms] 释放房间成员失败:', relErr)
-        return fail(500, 'DB_ERROR', '移出房间内学生失败:' + (relErr.message || '数据库返回错误'), origin)
+        return failServer('移出房间内学生失败', 'DB_ERROR', origin)
       }
     }
 
@@ -380,13 +380,13 @@ async function deleteRoom(event, origin) {
     const { error: delErr } = await roomsRepo.remove(roomId, campId)
     if (delErr) {
       console.error('[api-rooms] 删除房间失败:', delErr)
-      return fail(500, 'DB_ERROR', '删除房间失败:' + (delErr.message || '数据库返回错误'), origin)
+      return failServer('删除房间失败', 'DB_ERROR', origin)
     }
 
     return ok({ id: roomId, unassigned_count: count }, origin)
   } catch (err) {
     console.error('[api-rooms] 异常:', err)
-    return fail(500, 'INTERNAL_ERROR', '服务器内部错误:' + (err.message || '未知异常'), origin)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
   }
 }
 
