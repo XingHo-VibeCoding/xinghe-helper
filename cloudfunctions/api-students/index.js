@@ -33,6 +33,7 @@
 const studentsRepo = require('./students.repo.js')
 const { ok, fail, failServer, originOf } = require('./response.js')
 const { handlePreflight } = require('./cors.js')
+const { logRequest } = require('./requestLog.js')
 
 // ============================================================
 // 入口:按方法 + action 分流
@@ -48,22 +49,28 @@ exports.main = async (event) => {
   // 不能落到下面的业务分支(否则会被当成查学生)。
   if (method === 'OPTIONS') return handlePreflight(event)
 
-  // ---- POST:全是写操作 ----
-  if (method === 'POST') {
-    if (action === 'apply') return applyAssignments(event, origin)
-    if (action === 'history') return saveHistory(event, origin)
-    // 不写 action 时默认就是「学生报名」—— 表单页是最主要的调用方,
-    // 让它不用多记一个 action 参数。
-    return submitStudent(event, origin)
-  }
+  // Day 23 余力加练:整个业务部分包在请求日志里。
+  //   为什么包在这里而不是在每个业务函数里写 console.log ——
+  //   接口各写一遍就是多个可能忘的地方;包在 main 上是一处覆盖全部,
+  //   以后新增接口自动有日志。理由同 Day 23 改裸报错:修在源头,不逐处打补丁。
+  return logRequest(event, async () => {
+    // ---- POST:全是写操作 ----
+    if (method === 'POST') {
+      if (action === 'apply') return applyAssignments(event, origin)
+      if (action === 'history') return saveHistory(event, origin)
+      // 不写 action 时默认就是「学生报名」—— 表单页是最主要的调用方,
+      // 让它不用多记一个 action 参数。
+      return submitStudent(event, origin)
+    }
 
-  // ---- PATCH:改单个学生的分配 ----
-  if (method === 'PATCH') return assignStudent(event, origin)
+    // ---- PATCH:改单个学生的分配 ----
+    if (method === 'PATCH') return assignStudent(event, origin)
 
-  // ---- GET:全是读操作 ----
-  if (action === 'camp') return getCamp(event, origin)
-  if (action === 'history') return getLatestHistory(event, origin)
-  return listStudents(event, origin)
+    // ---- GET:全是读操作 ----
+    if (action === 'camp') return getCamp(event, origin)
+    if (action === 'history') return getLatestHistory(event, origin)
+    return listStudents(event, origin)
+  })
 }
 
 // ============================================================

@@ -31,6 +31,7 @@
 const roomsRepo = require('./rooms.repo.js')
 const { ok, fail, failServer, originOf } = require('./response.js')
 const { handlePreflight } = require('./cors.js')
+const { logRequest } = require('./requestLog.js')
 
 // ============================================================
 // 入口:按请求方法分流
@@ -57,10 +58,16 @@ exports.main = async (event) => {
   // 必须直接回「可以」,不能落到下面的业务分支(否则会被当成查房间)。
   if (method === 'OPTIONS') return handlePreflight(event)
 
-  if (method === 'POST') return createRoom(event, origin)
-  if (method === 'PATCH') return updateRoom(event, origin)
-  if (method === 'DELETE') return deleteRoom(event, origin)
-  return listRooms(event, origin)
+  // Day 23 余力加练:整个业务部分包在请求日志里。
+  //   为什么包在这里而不是在每个业务函数里写 console.log ——
+  //   12 个接口各写一遍就是 12 个可能忘的地方;包在 main 上是一处覆盖全部,
+  //   以后新增接口自动有日志。理由同Day 23 改裸报错:修在源头,不逐处打补丁。
+  return logRequest(event, async () => {
+    if (method === 'POST') return createRoom(event, origin)
+    if (method === 'PATCH') return updateRoom(event, origin)
+    if (method === 'DELETE') return deleteRoom(event, origin)
+    return listRooms(event, origin)
+  })
 }
 
 // ============================================================
