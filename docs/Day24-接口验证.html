@@ -69,6 +69,12 @@
   td.m{font-family:"Cascadia Mono",Consolas,monospace;font-size:10.5px}
   .c-ok{color:var(--ok);font-weight:600} .c-err{color:var(--err);font-weight:600}
   .c-no{color:var(--ink3)}
+  /* 线上实测截图：直接嵌图，不用文字复述 */
+  .shot{margin:11px 0 5px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .shot img{display:block;width:100%}
+  .shot-cap{font-size:11px;color:var(--ink3);padding:7px 11px;background:#fbfcfe;
+    border-top:1px solid var(--line)}
+  .shot-cap b{color:var(--ink)}
   .note{background:#f6f9ff;border-left:3px solid var(--acc);padding:9px 12px;
     border-radius:0 6px 6px 0;font-size:11.5px;color:var(--ink2);margin-top:11px}
   .note b{color:var(--ink)}
@@ -299,9 +305,20 @@
         <tr><td class="m">7</td><td>未分配名单未被误改</td><td>男 2 女 1</td>
           <td class="c-ok">通过</td><td>截图确认（郑楚、高远 / 沈知意）</td></tr>
         <tr><td class="m">8</td><td>Network 里 POST 数量</td><td>1 个</td>
-          <td class="c-no">待补</td><td>需你补一张 F12 Network 截图（Preserve log 后连点 5 次）</td></tr>
+          <td class="c-no">待补</td><td>需补一张 F12 Network 截图（Preserve log 后连点 5 次）</td></tr>
       </tbody>
     </table>
+
+    <div class="lab"><b>线上实测原图（改后）</b> —— 连点 5 次「添加」后的页面</div>
+    <div class="shot">
+      <img src="screenshots/Day24-连点5次后仅1间房.png"
+           alt="改后线上实测：连点 5 次添加，页面只出现一间 T901 房，无报错" />
+      <div class="shot-cap">
+        <b>改后实测</b>：快速连点「添加」5 次 → 页面出现 <b>T901 已住 0/4</b>，
+        房间数 11 → 12，<b>无任何红色报错条</b>；未分配名单仍为男 2 女 1（未被误改）。
+        数据库核对：<code>where room_no='T901'</code> 只有 <b>1 行</b>（id=128）。
+      </div>
+    </div>
 
     <div class="note warn"><b>第 8 项还没完成，我不打算含糊过去</b>：
       截图能证明「<b>结果</b>正确」（1 间房、无报错），
