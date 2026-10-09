@@ -274,6 +274,13 @@ export default function Workbench() {
   // ===== 房间管理 =====
   async function handleAddRoom(e) {
     e.preventDefault()
+    // Day 24 修复:第二道防线。
+    //   为什么按钮的disabled 不够 —— 表单里按回车键会触发 onSubmit,
+    //   那条路径完全不经过按钮,disabled 拦不住。实测里5 次连点会产生 5 个
+    //   POST,如果用户是在输入框里连按回车,同样会重复提交。
+    //   所以函数开头也要挡一次。这是「前端防连点」的标准两件套:
+    //   ①按钮禁用(挡住鼠标点击) ②函数入口判断(挡住回车/程序调用)
+    if (busy) return
     const roomNo = newRoom.room_no.trim()
     const cap = Number(newRoom.capacity)
     if (!roomNo || !cap || cap < 1) {
@@ -526,8 +533,19 @@ export default function Workbench() {
                 value={newRoom.capacity}
                 onChange={(e) => setNewRoom((r) => ({ ...r, capacity: e.target.value }))}
               />
-              <button className="btn-primary room-add-btn" type="submit">
-                添加
+              {/* Day 24 修复:disabled={!!busy} —— 防止快速连点提交多个房间。
+                  为什么需要:handleAddRoom 里有 await addRoom(),那是一次网络往返
+                  (实测 200~800ms),这段时间按钮完全可点 → 连点 5 次会发 5 个 POST。
+                  为什么数据没坏:后端 unique(camp_id, room_no) 挡住了,
+                  实测 5 个并发请求 → 1 个 200 + 4 个 409,只加出 1 间房。
+                  但用户看到的是「我明明点了一次,怎么弹了 4 次错」——
+                  **后端防住了数据,没防住体验**。
+                  这个 disabled 写法与本文件第 397/401/404 行完全一致,不引入新写法。
+                  文案直接用 busy 的值(保存中…/删除中…/正在分房…),
+                  按钮禁用时告诉用户在等什么,而不是让人以为按钮坏了。
+                  详见 docs/Day24-Bug修复记录.md */}
+              <button className="btn-primary room-add-btn" type="submit" disabled={!!busy}>
+                {busy || '添加'}
               </button>
             </form>
           )}
