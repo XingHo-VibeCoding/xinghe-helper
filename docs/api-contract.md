@@ -1,6 +1,6 @@
 # api-contract.md — xinghe-helper 前后端接口契约
 
-> **状态：Day 15 登记接口 · Day 16 数据表建成 · Day 17 读接口已实现（2.4 / 2.5 ✅）· Day 18 首个写接口已实现（2.6 ✅）**
+> **状态：Day 15 登记接口 · Day 16 数据表建成 · Day 17 读接口已实现（2.4 / 2.5 ✅）· Day 18 首个写接口已实现（2.6 ✅）· Day 20 改删接口已实现（2.7 / 2.8 ✅）· Day 22 闭环验证通过（2.7 / 2.8 ✅✅）**
 > 来源：从 `web/src/api/`（students.js / rooms.js / client.js / mockData.js）的现有调用推导，字段名与数据库表完全一致。
 > 后端形态：CloudBase 云函数 + HTTP 访问路径，函数内用 `@cloudbase/node-sdk` 的 `app.rdb()` 读 PG
 > （**注意**：不是连接串直连——本环境为体验版共享集群，直连通道被套餐限制，详见第 4 节）。
@@ -226,25 +226,84 @@
   - `409 ROOM_NO_DUPLICATED` —— 同营期下房号重复
   - `500 DB_ERROR` / `500 INTERNAL_ERROR`
 
-### 2.7 PATCH /api/rooms/:id —— 修改房间
+### 2.7 PATCH /api/rooms —— 修改房间 ✅ 已实现（Day 20 实现 · Day 22 闭环验证）
 
 - **对应前端**：`rooms.js → updateRoom(roomId, patch)`
-- **方法**：`PATCH`
-- **请求 body**（只传要改的字段）：`{ "capacity": 6 }` 或 `{ "gender_label": "女" }`
-- **响应**：`{ "ok": true }`
-- **错误**：`404 ROOM_NOT_FOUND` · `409 ROOM_CAPACITY_CONFLICT`（改小容量导致现有人数超员时）
+- **云函数**：`cloudfunctions/api-rooms/`（与 2.5 / 2.6 / 2.8 **同一个函数**，按 `event.httpMethod` 分流）
+- **实际调用形态**：`PATCH /api/rooms?id=&camp_id=`
 
-### 2.8 DELETE /api/rooms/:id —— 删除房间
+  > ⚠️ **与本文档最初登记的差异**：原文写的是 `PATCH /api/rooms/:id`（路径参数）。
+  > 实际实现改用查询参数，原因是 CloudBase 控制台的「HTTP 路径 → 云函数」映射
+  > 只配了 3 条且 **Path passthrough = Disable**，`/:id` 传不进函数。
+  > **形态不同、语义一致**，已在Day 20 文档中补注。
+- **Query 参数**：`id`（房间 id，必填）· `camp_id`（所属营期，必填）
+  - **为什么 `id` 和 `camp_id` 都要**：只凭 `id` 定位的话，操作 A 营期的人就能改到 B 营期的房。带上营期 = 只能动「本次打开的那个营期」里的房。
+- **请求 body**（只传要改的字段，patch 语义）：
+  `{"room_no":"305"}` · `{"capacity":6}` · `{"gender_label":"女"}`
+  - **可改字段仅三个**：`room_no` / `capacity` / `gender_label`（对齐 `rooms` 表实际存在的列）
+  - 未传的字段**不进 UPDATE 语句**，原值保持不变（与 PUT 的区别）
+- **响应**：`{ ok, data, error }`，`data` 为改后的房间对象
+  ```json
+  { "ok": true, "data": { "id": 123, "room_no": "999", "capacity": 6, "gender_label": null }, "error": null }
+  ```
+- **Day 22 实测结论**：
+  | 验证项 | 结果 |
+  |---|---|
+  | 改容量 `4 → 6` | ✅ 接口返回、GET 回读、数据库 select 三处一致 |
+  | 未传字段是否被保留 | ✅ `room_no=999`、`gender_label=null` 均原样保留 |
+  | `created_at` 是否变化 | ✅ **未变**（08:12:55）⇒ 证明是 UPDATE 而非「删旧建新」 |
+- **错误**：
+  - `400 VALIDATION_ERROR` —— 逐字段校验，中文提示讲清缺什么：`id` / `camp_id` 必填正整数 · `room_no` trim 后非空且 ≤20 字符 · `capacity` 正整数 · `gender_label` 非空时须为 男/女
+  - `400 NOTHING_TO_UPDATE` —— 一个字段都没传（如 `{}`）
+  - `400 INVALID_JSON` —— 请求体不是合法 JSON
+  - `404 ROOM_NOT_FOUND` —— `id` 不存在（含格式合法的正整数但查无此房）
+  - `409 ROOM_NO_DUPLICATED` —— 改房号时与同营期其他房间冲突
+  - `409 ROOM_CAPACITY_CONFLICT` —— 改小容量导致现有人数超员（会告诉用户当前住了几人）
+  - `500 DB_ERROR` / `500 INTERNAL_ERROR`
 
-- **对应前端**：`rooms.js → unassignStudentsOfRoom() + deleteRoom()`（两步合一）
-- **方法**：`DELETE`
-- **后端必须完成的逻辑**：**先**把该房间内所有学生置为 `assigned_room_id = null, assign_status = '未分配'`，**再**删除房间（两步必须在一个函数里完成，避免"删了房人还挂在房上"）
-- **响应**：`{ "ok": true, "unassigned_count": 3 }`
-- **错误**：`404 ROOM_NOT_FOUND`
+### 2.8 DELETE /api/rooms —— 删除房间 ✅ 已实现（Day 20 实现 · Day 22 闭环验证）
 
-### 2.9 PATCH /api/students/:id/room —— 单个学生分配 / 取消分配
+- **对应前端**：`rooms.js → deleteRoom(roomId)`（`unassignStudentsOfRoom()` 已废弃，见下）
+- **实际调用形态**：`DELETE /api/rooms?id=&camp_id=`（路径参数差异同2.7）
+- **Query 参数**：`id`（必填）· `camp_id`（必填）
+- **后端逻辑（契约硬性要求，两步必须在一个函数内完成）**：
+  1. 先把该房间内所有学生置为 `assigned_room_id = null, assign_status = '未分配'`
+  2. 再删除房间这一行
+  3. 返回被放回未分配的人数 `unassigned_count`
+
+  > **为什么不能拆成前端两次调用**：若由前端先调「批量取消分配」再调「删房」，
+  > 中间断网或关页面，会留下「房还在、人已被清空」或「房没了、人还挂在不存在的房号上」的半套数据。
+  > 放在一个云函数里一次完成，要么都成功，要么都不做。
+- **响应**：
+  ```json
+  { "ok": true, "data": { "id": 123, "unassigned_count": 2 }, "error": null }
+  ```
+  - **`unassigned_count` 是本接口最重要的字段**：它告诉调用方「删这间房连带把 N 个人放回了未分配」。
+    这个数字在页面上看不到，只有接口返回里有——也是前端二次确认要提前告知用户的内容。
+- **Day 22 实测结论**：
+  | 验证项 | 结果 |
+  |---|---|
+  | 删除住着 2 人的房 | ✅ `unassigned_count: 2` |
+  | DELETE 后 GET 是否还返回它 | ✅ **不再返回**（房间总数 12 → 11） |
+  | 成员是否自动回未分配 | ✅ 郑楚(id=10)、沈知意(id=12) 均 `assigned_room_id=NULL` / `未分配` |
+  | 是否产生孤儿学生 | ✅ **0 人**（无人挂在不存在的房上） |
+  | 学生总数是否变 | ✅ 14 → 14（**删房不删人**，一人不少） |
+- **前端二次确认**（Day 20 已实现，Day 22 复核）：
+  `Workbench.jsx → handleDeleteRoom()` 用 `window.confirm` 拦一道，
+  且**提示文案会带出连带影响人数**：「里面的 N 人会回到未分配名单」，
+  人数为 0 时不显示这句。后端保证原子性，前端保证用户不点错——两者职责不同，缺一不可。
+- **错误**：
+  - `400 VALIDATION_ERROR` —— `id` / `camp_id` 缺失或非正整数
+  - `404 ROOM_NOT_FOUND` —— `id` 不存在
+  - `500 DB_ERROR` / `500 INTERNAL_ERROR`
+- **完整验证证据**：`docs/Day22-接口验证.html`（?only=patch / ?only=delete 可单节查看）
+  ·截图 `docs/screenshots/Day22-PATCH前后对比.png`、`Day22-DELETE后GET不再返回.png`
+
+### 2.9 PATCH /api/students —— 单个学生分配 / 取消分配
 
 - **对应前端**：`rooms.js → setStudentRoom(studentId, roomId)`（拖拽即时保存）
+- **实际调用形态**：`PATCH /api/students?id=`（路径参数差异同 2.7）
+- **Query 参数**：`id`（学生 id，必填）
 - **方法**：`PATCH`
 - **请求 body**：
 
@@ -306,15 +365,36 @@
 
 ## 3. 实现顺序建议（第 3 周）
 
-1. ~~建表~~ ✅ **已完成（Day 16）**：`db/schema.sql` + `db/seed.sql` 已在 CloudBase 执行并验证。剩余：把 `web/.env` 指向 CloudBase
+1. ~~建表~~ ✅ **已完成（Day 16）**：`db/schema.sql` + `db/seed.sql` 已在 CloudBase 执行并验证
 2. 先做**读**接口：~~2.4 / 2.5~~ ✅ **已完成（Day 17）** → 2.2（表单页）
-3. 再做**写**接口：~~2.6~~ ✅ **已完成（Day 18）** → 2.9 → 2.7 / 2.8 → 2.3 → 2.10 → 2.11 / 2.12
+3. 再做**写**接口：~~2.6~~ ✅ **已完成（Day 18）** → 2.9 → ~~2.7 / 2.8~~ ✅ **已完成（Day 20）** → 2.3 → 2.10 → 2.11 / 2.12
    - **路由约定**：同一资源路径的读写放在**同一个云函数**里，按 `event.httpMethod` 分流
      （如 2.5 GET 与 2.6 POST 都在 `api-rooms/`）。因为「HTTP 路径 → 函数」的映射在控制台配，
      同路径挂两个函数按方法分发并不确定，放一个函数里最稳，也不用动控制台。
+   - **形态约定（Day 20 起）**：控制台 Path passthrough = Disable，`/:id` 传不进函数，
+     所以 2.7 / 2.8 / 2.9 一律改用**查询参数**传 id（`?id=&camp_id=`）。语义与原契约一致。
 4. 每接好一个，就把前端 `api/` 里对应函数从 Supabase 调用换成 `fetch(Base URL + 路径)`
    - ⚠️ 注意响应形状已变：前端要按 `{ ok, data, error }` 解析，例如
      `const { ok, data, error } = await res.json()`，而不是直接拿到数组。
+
+### 3.1 改 / 删 / 查的闭环验证（Day 22）
+
+2.7 / 2.8 在 Day 20 各自测通，Day 22 补做了**闭环验证**——
+把增、改、查、删串成一条链，验证的不是「每个接口都返回 ok」，而是：
+
+| 环节 | 验证内容 | 实测 |
+|---|---|---|
+| 改完再查 | GET 读到的是**新值**，不是旧值缓存 | capacity `4 → 6` 三处一致 |
+| 删完再查 | GET **不再返回**该条| 房间 12 → 11，999 消失 |
+| 删房的连带影响 | 房内成员自动回未分配，无孤儿 | `unassigned_count: 2`，孤儿 0 人 |
+| 不存在的 id | 返回中文错误说明而非英文报错 | 404 +「房间不存在(id=9999…)」 |
+
+证据：`docs/Day22-接口验证.html` · `docs/screenshots/Day22-*.png`
+
+> **为什么闭环比逐个测试重要**：逐个测试只能证明「每个按钮按下去没报错」。
+> 闭环证明的是「改完再查，查到的是新值；删完再查，查不到了」——
+> 后者才能排除掉「接口返回 ok:true 但数据没真正落库」这类假成功。
+
 
 ## 4. 跨域与数据库连接方式（Day 17 已定案）
 

@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Day 22｜PATCH / DELETE 闭环验证</title>
+<style>
+  :root{
+    --bg:#eef1f6; --panel:#ffffff; --line:#d8dee9;
+    --ink:#16202e; --ink2:#5a6880; --ink3:#8c99ad;
+    --ok:#0f9d58; --okbg:#e6f6ed; --err:#d93025; --errbg:#fdecea;
+    --acc:#1a73e8; --warn:#b06000; --warnbg:#fef7e0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);padding:28px 26px 40px;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;line-height:1.6}
+  .wrap{max-width:1240px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:5px}
+  .sub{color:var(--ink2);font-size:13px;margin-bottom:22px}
+  .badge{display:inline-block;margin-left:9px;padding:2px 10px;border-radius:999px;
+    font-size:11.5px;font-weight:600;background:var(--okbg);color:var(--ok);
+    border:1px solid rgba(15,157,88,.3);vertical-align:middle}
+
+  .sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 20px;margin-bottom:16px}
+  .sec h2{font-size:15px;margin-bottom:6px;padding-bottom:9px;
+    border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+    align-items:center}
+  .sec .lead{font-size:12.5px;color:var(--ink2);margin:10px 0 14px}
+  .cnt{font-size:11.5px;color:var(--ok);font-weight:600;white-space:nowrap}
+
+  /* 前后对比：左右两栏 */
+  .ba{display:grid;grid-template-columns:1fr 74px 1fr;gap:0;align-items:stretch}
+  .ba-l,.ba-r{background:#fbfcfe;border:1px solid var(--line);border-radius:9px;padding:13px 15px}
+  .ba-l{border-left:3px solid #b9c2d0}
+  .ba-r{border-left:3px solid var(--ok)}
+  .ba-x{display:flex;align-items:center;justify-content:center;
+    font-size:20px;color:var(--ink3);font-weight:600}
+  .ba-t{font-size:11.5px;font-weight:600;letter-spacing:.4px;margin-bottom:9px;
+    display:flex;align-items:center;gap:6px}
+  .ba-l .ba-t{color:#7b8798}
+  .ba-r .ba-t{color:var(--ok)}
+  .ba-t s{text-decoration:none;color:var(--ink3);font-weight:400;font-size:10.5px}
+
+  pre{background:#1b2334;color:#dbe3f0;border-radius:8px;padding:12px 14px;
+    font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;line-height:1.7;
+    overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:0}
+  .j-key{color:#7cc0ff} .j-str{color:#a5d6a7} .j-num{color:#ffcb6b}
+  .j-bool{color:#ff9f7f} .j-null{color:#8c99ad} .j-punc{color:#8fa0bd}
+
+  /* 值变化大字 */
+  .delta{display:flex;align-items:center;justify-content:center;gap:16px;margin:14px 0 4px}
+  .dv{text-align:center;padding:9px 20px;border-radius:9px;background:#fbfcfe;
+    border:1px solid var(--line)}
+  .dv u{display:block;text-decoration:none;font-size:10.5px;color:var(--ink3);
+    letter-spacing:.4px;margin-bottom:3px}
+  .dv b{font-family:"Cascadia Mono",Consolas,monospace;font-size:26px;font-weight:600}
+  .dv.before b{color:#7b8798}
+  .dv.after b{color:var(--ok)}
+  .da{font-size:19px;color:var(--ink3)}
+
+  .lab{font-size:12px;color:var(--ink3);margin:16px 0 9px;letter-spacing:.2px;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .lab b{color:var(--ink);font-size:12.5px}
+  .tag{padding:1.5px 8px;border-radius:5px;font-size:10.5px;font-weight:700;
+    font-family:"Cascadia Mono",Consolas,monospace;letter-spacing:.3px}
+  .t-get{background:#e8f0fe;color:#1967d2} .t-post{background:var(--okbg);color:var(--ok)}
+  .t-patch{background:var(--warnbg);color:var(--warn)}
+  .t-del{background:var(--errbg);color:var(--err)}
+  .t-sql{background:#efe9fb;color:#5a3fb8}
+  code{font-family:"Cascadia Mono",Consolas,monospace;font-size:11.5px;
+    background:#f1f4f9;padding:1px 5px;border-radius:4px;color:var(--acc)}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--ink2);font-weight:600;font-size:11.5px;
+    padding:8px 10px;border-bottom:1.5px solid var(--line);letter-spacing:.3px}
+  td{padding:7px 10px;border-bottom:1px solid #eef1f6;vertical-align:top}
+  tr:last-child td{border:0}
+  td.m{font-family:"Cascadia Mono",Consolas,monospace;font-size:11px;white-space:nowrap}
+  .c-ok{color:var(--ok);font-weight:600} .c-err{color:var(--err);font-weight:600}
+  .c-no{color:var(--ink3)}
+  .strike{text-decoration:line-through;color:var(--ink3)}
+
+  .note{background:#f6f9ff;border-left:3px solid var(--acc);padding:10px 14px;
+    border-radius:0 7px 7px 0;font-size:12px;color:var(--ink2);margin-top:13px}
+  .note b{color:var(--ink)}
+  .note.warn{background:var(--warnbg);border-left-color:var(--warn)}
+  .note.warn b{color:var(--warn)}
+  .foot{font-size:11.5px;color:var(--ink3);text-align:center;margin-top:22px}
+
+  /* 按 URL 参数只显示某一节：?only=patch / ?only=delete
+     为什么需要这个 —— 交付要两张截图（PATCH 一张、DELETE 一张），
+     但浏览器窗口只有一屏高，整页截下来每张都只装得下一半。
+     加了这个参数就能让某一节单独占满一屏，截出来的图前后对比完整可见。
+     用法：文档末尾的脚本会读location.search，给要隐藏的节加 .hid。 */
+  .sec.hid,.foot.hid{display:none}
+  /* 打印/整页截图时用：?slim=1 去掉页面头部与留白，让一节内容压缩进一屏 */
+  body.slim{padding:14px 16px 18px}
+  body.slim .top{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1 class="top">Day 22｜PATCH / DELETE 闭环验证<span class="badge">四类操作 全部通过</span></h1>
+  <div class="sub top">2026-10-09 · 增 / 改 / 查 / 删 四类操作串成一条链验证　｜　Base URL：<code>…service.tcloudbase.com</code><br>
+  实验对象：一间临时测试房 <b>999</b>（id=123），验证完已删除，<b>seed 数据 101–104 一条未动</b></div>
+
+  <!-- ═══ ① PATCH 前后对比 ═══ -->
+  <div class="sec">
+    <h2><span>① PATCH —— 一间房的容量 4 → 6</span><span class="cnt">完成标准「PATCH 修改一条数据生效」</span></h2>
+    <div class="lead">契约 2.7。<b>只传要改的字段</b>，没传的<code>room_no</code> / <code>gender_label</code> 原样保留 —— 这就是 PATCH 和 PUT 的区别。</div>
+
+    <div class="ba">
+      <div class="ba-l">
+        <div class="ba-t">改之前 · GET 回读　<s>建完 999 房时</s></div>
+        <pre>{
+  <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">123</span><span class="j-punc">,</span>
+  <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"999"</span><span class="j-punc">,</span>
+  <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">4</span><span class="j-punc">,</span>
+  <span class="j-key">"gender_label"</span><span class="j-punc">:</span> <span class="j-null">null</span><span class="j-punc">,</span>
+  <span class="j-key">"created_at"</span><span class="j-punc">:</span> <span class="j-str">"2026-10-09T08:12:55+08:00"</span>
+}</pre>
+      </div>
+      <div class="ba-x">→</div>
+      <div class="ba-r">
+        <div class="ba-t">改之后 · PATCH 返回 + GET 回读都一致</div>
+        <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">{</span>
+    <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">123</span><span class="j-punc">,</span>
+    <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"999"</span><span class="j-punc">,</span>
+    <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">6</span><span class="j-punc">,</span>
+    <span class="j-key">"gender_label"</span><span class="j-punc">:</span> <span class="j-null">null</span>
+  <span class="j-punc">},</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-null">null</span>
+}</pre>
+      </div>
+    </div>
+
+    <div class="delta">
+      <div class="dv before"><u>capacity 改前</u><b>4</b></div>
+      <div class="da">→</div>
+      <div class="dv after"><u>capacity 改后</u><b>6</b></div>
+      <div class="dv"><u>room_no（没传，原样保留）</u><b style="color:var(--ink2)">999</b></div>
+      <div class="dv"><u>created_at（没变 ⇒是 UPDATE 不是 INSERT）</u><b style="color:var(--ink2);font-size:15px">08:12:55</b></div>
+    </div>
+
+    <div class="lab"><span class="tag t-patch">PATCH</span><b>调用与来源</b>
+      <code>curl -X PATCH "…/api/rooms?id=123&amp;camp_id=1" -d '{"capacity":6}'</code></div>
+
+    <div class="lab"><span class="tag t-sql">SELECT</span><b>数据库层对照</b>
+      控制台 SQL 编辑器执行，两次结果：</div>
+    <table>
+      <thead><tr><th style="width:70px">id</th><th style="width:80px">room_no</th>
+        <th style="width:100px">capacity</th><th style="width:110px">gender_label</th><th>created_at</th></tr></thead>
+      <tbody>
+        <tr><td class="m">123</td><td class="m">999</td>
+          <td class="m strike">4</td><td class="m c-no">NULL</td><td class="m c-no">2026-10-09 08:12:55+08</td></tr>
+        <tr><td class="m">123</td><td class="m">999</td>
+          <td class="m c-ok">6</td><td class="m c-no">NULL</td><td class="m c-no">2026-10-09 08:12:55+08<span class="c-no">（未变）</span></td></tr>
+      </tbody>
+    </table>
+    <div class="note"><b>为什么 created_at 不能变</b>：它是这一行的建房时间。
+      如果 PATCH 之后它变成了新时间，说明代码把 UPDATE 写成了 INSERT——
+      也就是「改」变成了「删掉旧的、新建一条」。那样学生的分配关系会全部丢失，
+      而接口还会返回 <code>ok:true</code>。<b>所以验证修改不能只看 ok 字段。</b></div>
+  </div>
+
+  <!-- ═══ ② DELETE 前后对比 ═══ -->
+  <div class="sec">
+    <h2><span>② DELETE —— 删掉住着 2 人的 999 房</span><span class="cnt">完成标准「DELETE 删除后 GET 不再返回」</span></h2>
+    <div class="lead">契约 2.8。<b>先把房内成员放回未分配，再删房</b>，两步在同一个云函数里完成——这是删除比新增更容易出事的核心。</div>
+
+    <div class="lab">删除前的状态：两名未分配学生被临时调进 999 房</div>
+    <table>
+      <thead><tr><th style="width:70px">id</th><th style="width:110px">name</th>
+        <th style="width:160px">assigned_room_id</th><th style="width:110px">assign_status</th></tr></thead>
+      <tbody>
+        <tr><td class="m">10</td><td>郑楚</td><td class="m">123</td><td class="m">已分配</td></tr>
+        <tr><td class="m">12</td><td>沈知意</td><td class="m">123</td><td class="m">已分配</td></tr>
+      </tbody>
+    </table>
+
+    <div class="ba" style="margin-top:14px">
+      <div class="ba-l">
+        <div class="ba-t">删除前 · GET /api/rooms?camp_id=1</div>
+        <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">[</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">101</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"301"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">4</span> <span class="j-punc">},</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">115</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"312"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">3</span> <span class="j-punc">},</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">123</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"999"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">6</span> <span class="j-punc">},</span>
+    <span class="j-punc">…</span> <span class="j-comment">共 12 条</span>
+  <span class="j-punc">]</span>
+}</pre>
+      </div>
+      <div class="ba-x">→</div>
+      <div class="ba-r">
+        <div class="ba-t">删除后 · 同一条 GET，列表里已没有 999</div>
+        <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">[</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">101</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"301"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">4</span> <span class="j-punc">},</span>
+    <span class="j-punc">{</span> <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">115</span><span class="j-punc">,</span> <span class="j-key">"room_no"</span><span class="j-punc">:</span> <span class="j-str">"312"</span><span class="j-punc">,</span> <span class="j-key">"capacity"</span><span class="j-punc">:</span> <span class="j-num">3</span> <span class="j-punc">},</span>
+    <span class="j-punc">…</span> <span class="j-comment">共 11 条</span>
+  <span class="j-punc">]</span>
+  <span class="j-comment">// id=123 / room_no=999 整行已消失</span>
+}</pre>
+      </div>
+    </div>
+
+    <div class="delta">
+      <div class="dv before"><u>房间总数</u><b>12</b></div>
+      <div class="da">→</div>
+      <div class="dv after"><u>房间总数</u><b>11</b></div>
+      <div class="dv after"><u>GET 里还有 999 吗</u><b>false</b></div>
+      <div class="dv after"><u>孤儿学生（挂在不存在的房上）</u><b>0</b></div>
+    </div>
+
+    <div class="lab"><span class="tag t-del">DELETE</span><b>调用与返回</b>
+      <code>curl -X DELETE "…/api/rooms?id=123&amp;camp_id=1"</code>　→ HTTP 200</div>
+    <pre>{
+  <span class="j-key">"ok"</span><span class="j-punc">:</span> <span class="j-bool">true</span><span class="j-punc">,</span>
+  <span class="j-key">"data"</span><span class="j-punc">:</span> <span class="j-punc">{</span>
+    <span class="j-key">"id"</span><span class="j-punc">:</span> <span class="j-num">123</span><span class="j-punc">,</span>
+    <span class="j-key">"unassigned_count"</span><span class="j-punc">:</span> <span class="j-num">2</span>
+  <span class="j-punc">},</span>
+  <span class="j-key">"error"</span><span class="j-punc">:</span> <span class="j-null">null</span>
+}</pre>
+    <div class="note"><b>unassigned_count 是今天最重要的一个字段</b>。
+      它告诉你「删这间房连带把 2 个人放回了未分配」。
+      如果这个数字对不上，说明释放成员和删房没有真正做成一步——
+      这正是前端加二次确认要拦住的场景：<b>用户以为只删了一间房，实际上动了里面所有人。</b></div>
+
+    <div class="lab"><span class="tag t-sql">SELECT</span><b>那 2 个人去哪了（数据库层证据）</b></div>
+    <table>
+      <thead><tr><th style="width:70px">id</th><th style="width:110px">name</th>
+        <th style="width:190px">assigned_room_id</th><th style="width:120px">assign_status</th></tr></thead>
+      <tbody>
+        <tr><td class="m">10</td><td>郑楚</td><td class="m">123</td><td class="m c-err">已分配（删除前）</td></tr>
+        <tr><td class="m">10</td><td>郑楚</td><td class="m c-ok">NULL</td><td class="m c-ok">未分配（删除后）</td></tr>
+        <tr><td class="m">12</td><td>沈知意</td><td class="m">123</td><td class="m c-err">已分配（删除前）</td></tr>
+        <tr><td class="m">12</td><td>沈知意</td><td class="m c-ok">NULL</td><td class="m c-ok">未分配（删除后）</td></tr>
+      </tbody>
+    </table>
+    <pre>-- 999 房是否真的消失（一次查询算两个数）
+<span class="j-key">select</span> <span class="j-bool">count</span>(*) <span class="j-key">as</span> 房间总数,
+       <span class="j-bool">count</span>(*) <span class="j-key">filter</span> (<span class="j-key">where</span> room_no = <span class="j-str">'999'</span>) <span class="j-key">as</span> 还剩999
+<span class="j-key">from</span> <span class="j-punc">public</span>.rooms;
+<span class="j-comment">-- 房间总数 = 11 | 还剩999 = 0</span></pre>
+    <div class="note"><b>为什么学生总数没变（14 → 14）</b>：
+      删房只删<code>rooms</code> 那一行，<b>不删学生</b>。
+      如果总数变少了，说明 DELETE 误删了人——这是最危险的一种事故。
+      今天的验证专门查了这项：<b>14 → 14，一人不少、一人不乱。</b></div>
+  </div>
+
+  <!-- ═══ ③ 边界情况 ═══ -->
+  <div class="sec">
+    <h2><span>③ 边界与校验 —— 不存在的 id、非法参数</span><span class="cnt">4 / 4 拦住</span></h2>
+    <div class="lead">完成标准之外的要求：<b>校验 id 存在性，不存在的 id 返回中文错误说明</b>。</div>
+    <table>
+      <thead><tr><th style="width:52px">#</th><th style="width:210px">请求</th>
+        <th style="width:66px">状态码</th><th style="width:150px">error.code</th><th>error.message（给人看的中文）</th></tr></thead>
+      <tbody>
+        <tr><td class="m">1</td><td class="m">PATCH id=9999（不存在）</td>
+          <td class="m c-err">404</td><td class="m">ROOM_NOT_FOUND</td>
+          <td>房间不存在(id=9999, camp_id=1),可能已被删除,请刷新页面</td></tr>
+        <tr><td class="m">2</td><td class="m">DELETE id=9999（不存在）</td>
+          <td class="m c-err">404</td><td class="m">ROOM_NOT_FOUND</td>
+          <td>房间不存在(id=9999, camp_id=1),可能已被删除,请刷新页面</td></tr>
+        <tr><td class="m">3</td><td class="m">PATCH 空 body <code>{}</code></td>
+          <td class="m c-err">400</td><td class="m">NOTHING_TO_UPDATE</td>
+          <td>没有要修改的字段(可改: room_no / capacity / gender_label)</td></tr>
+        <tr><td class="m">4</td><td class="m">PATCH <code>{"capacity":0}</code></td>
+          <td class="m c-err">400</td><td class="m">VALIDATION_ERROR</td>
+          <td>capacity(可住人数)必须是正整数,当前收到:0</td></tr>
+      </tbody>
+    </table>
+    <div class="note"><b>第 3、4 条是「不碰数据库就能拦住的」</b>。
+      它们发生在参数校验阶段——比等到数据库报英文的 check violation 再翻译回来更早、更快、提示也更准。
+      第 4 条对应的数据库约束是 <code>check (capacity &gt; 0)</code>（见 <code>db/schema.sql</code>）：
+      <b>校验层和数据库约束是两层防护，两层都要有。</b></div>
+  </div>
+
+  <!-- ═══ ④ 二次确认 ═══ -->
+  <div class="sec">
+    <h2><span>④ 前端删除的二次确认</span><span class="cnt">Day 20 已实现</span></h2>
+    <div class="lead">今天要掌握的问题—— <b>你在哪加了确认？为什么加在这里？</b></div>
+    <pre><span class="j-comment">// web/src/pages/Workbench.jsx · handleDeleteRoom(room)</span>
+<span class="j-key">const</span> members = roomMembers(students, room.id)
+<span class="j-key">const</span> ok = window.<span class="j-bool">confirm</span>(
+  `确定删除 ${room.room_no} 房?` +
+    (members.length ? `里面的 ${members.length} 人会回到未分配名单。` : <span class="j-str">''</span>),
+)
+<span class="j-key">if</span> (!ok) <span class="j-key">return</span>   <span class="j-comment">// 用户点了取消，到此为止，一个请求都不发</span>
+<span class="j-key">const</span> res = <span class="j-key">await</span> <span class="j-bool">deleteRoom</span>(room.id)</pre>
+    <table>
+      <thead><tr><th style="width:230px">确认里写了什么</th><th>为什么要写这句</th></tr></thead>
+      <tbody>
+        <tr><td><b>房号</b>（`确定删除 301 房?`）</td>
+          <td>让用户确认删的是<b>哪一间</b>。房号是给人看的身份，比 <code>id=101</code> 直观得多</td></tr>
+        <tr><td><b>连带影响的人数</b>（<code>里面的 3 人会回到未分配名单</code>）</td>
+          <td>这是关键。删除的代价不是「少一间房」，而是 <b>3 个人的住宿安排被清空</b>。
+            不说的话，用户只会以为是删个空房间</td></tr>
+        <tr><td>人数为 0 时<strong>不显示</strong>这句</td>
+          <td>避免出现「里面的 0 人会回到未分配名单」这种让人以为还有人要处理的废话</td></tr>
+      </tbody>
+    </table>
+    <div class="note warn"><b>为什么确认必须放在前端，不能只靠后端</b>：
+      后端能保证「删房 + 放人」是原子的（要么都成功要么都不做），
+      但它<b>没法阻止用户点错</b>。二次确认是最后一道闸门，
+      而且它能提供后端给不了的东西——<b>把连带影响提前说出来</b>，让用户在数据还没变时就做决定。</div>
+  </div>
+
+  <!-- ═══ ⑤ 总结 ═══ -->
+  <div class="sec">
+    <h2><span>⑤ 完成标准逐条核对</span><span class="cnt">3 / 3 通过</span></h2>
+    <table>
+      <thead><tr><th style="width:300px">完成标准</th><th style="width:76px">状态</th><th>证据</th></tr></thead>
+      <tbody>
+        <tr><td>PATCH 修改一条数据生效</td><td class="c-ok">✓ 通过</td>
+          <td>capacity <b>4 → 6</b>，接口返回 + GET 回读 + 数据库 select 三处一致（第 ① 节）</td></tr>
+        <tr><td>DELETE 删除后 GET 不再返回</td><td class="c-ok">✓ 通过</td>
+          <td>房间 <b>12 → 11</b>，GET 里已无 999；数据库 <code>还剩999 = 0</code>（第 ② 节）</td></tr>
+        <tr><td>增删改查四类操作闭环</td><td class="c-ok">✓ 通过</td>
+          <td>POST 建 → PATCH 改 → GET 查 → DELETE 删，串成一条链走完，每步都留接口 + 数据库两处证据</td></tr>
+      </tbody>
+    </table>
+    <div class="note"><b>闭环的价值在于「每一步都验证了上一步的结果」。</b>
+      单测四个接口各自返回 <code>ok:true</code> 不叫闭环—— 那只能证明「每个按钮按下去没报错」。
+      闭环要证明的是：<b>改完再查，查到的是新值；删完再查，查不到了。</b></div>
+  </div>
+
+  <div class="foot">Day 22 · 2026-10-09 · 数据来源：本机实测（curl 打公网接口 + CloudBase 控制台 SQL 编辑器）</div>
+
+</div>
+
+<script>
+  // 只显示某一节：?only=patch / ?only=delete / ?only=edge / ?only=confirm / ?only=check
+  // 为什么要这个 —— 见上面 .hid 的注释：截图一屏装不下整页。
+  // 不传参数就是完整页面，正常打开不受影响。
+  (function () {
+    var q = location.search
+    if (/[?&]slim=1/.test(q)) document.body.classList.add('slim')
+    var m = q.match(/[?&]only=([a-z]+)/i)
+    if (!m) return
+    var keep = m[1].toLowerCase()
+    var map = { patch: 0, del: 1, delete: 1, edge: 2, confirm: 3, check: 4 }
+    if (!(keep in map)) return
+    var secs = document.querySelectorAll('.sec')
+    for (var i = 0; i < secs.length; i++) {
+      if (i !== map[keep]) secs[i].classList.add('hid')
+    }
+    var f = document.querySelector('.foot')
+    if (f) f.classList.add('hid')
+  })()
+</script>
+</body>
+</html>
