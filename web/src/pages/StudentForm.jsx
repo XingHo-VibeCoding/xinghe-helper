@@ -6,13 +6,16 @@ const TEACHERS = ['Mona', 'Kiven', 'Selena', 'Betty', 'Priya']
 const CLASSES = ['星一', '星二', '星三']
 
 // 必填项定义:key → 表单里的中文叫法(用于"还差 N 项没填"提示)
+// Day 27 修正：这三个原来写的是代码字段名的直译（classLevel → "班级"没错但"期望拼房人数"
+// 完全是 room_pref 的翻译），跟表单上用户实际看到的问法对不上，第三方看到会一脸茫然。
+// 现在统一成表单上的原话，提示里出现的字就是页面上能找到的字。
 const REQUIRED = [
   ['name', '姓名'],
   ['gender', '性别'],
   ['teacher', '带班老师'],
   ['classLevel', '班级'],
-  ['checkInDate', '入住日期'],
-  ['roomPref', '期望拼房人数'],
+  ['checkInDate', '你哪天到营入住'],
+  ['roomPref', '你想几人一间'],
 ]
 
 const EMPTY_FORM = {
@@ -92,7 +95,10 @@ export default function StudentForm() {
     const lack = REQUIRED.filter(([k]) => !form[k])
     if (lack.length > 0) {
       setMissing(lack.map(([k]) => k))
-      setErrMsg(`还差 ${lack.length} 项没填:${lack.map(([, label]) => label).join('、')}`)
+      // Day 27 第三方试用发现：原文案直接漏内部字段名（「期望拼房人数」是room_pref
+      // 的代码叫法），而且不说这些题在页面更下面，用户以为填完了却又报错，挫败感很强。
+      // 改成：说清填哪几题（用表单上的原话）+ 告诉他往下滚。
+      setErrMsg(`还差 ${lack.length} 项没填（往下滚，题都在页面下面）：${lack.map(([, label]) => label).join('、')}`)
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
@@ -202,9 +208,15 @@ export default function StudentForm() {
             你哪天到营入住? <span className="q-required">*</span>
             {form.checkInDate && <span className="q-check">✓</span>}
           </div>
+          {/* Day 27 第三方试用发现的卡点：<input type="date"> 渲染出来是个空白框，
+              新手不知道那是日期选择器，会当成文本框手打，结果浏览器判定非法日期、
+              值为空、提交被拦。原实现没有任何提示，第三方直接卡死在这一题。
+              下面这行提示 + 日期框内的占位符就是修复。 */}
+          <p className="q-hint-inline">点这里会弹出日历，选一个日期（不要手动打字）</p>
           <input
             className="q-input"
             type="date"
+            placeholder="点击选择日期"
             value={form.checkInDate}
             onChange={(e) => set('checkInDate')(e.target.value)}
           />

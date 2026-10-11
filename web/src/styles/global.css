@@ -492,6 +492,16 @@ body {
   margin: var(--sp-1) 0 0;
 }
 
+/* Day 27：日期题的操作提示（第三方卡在这里）。
+   放在标题与输入框之间，字号与正文一致 —— 因为这是「怎么操作」不是「补充说明」，
+   太小会看不见（本来的问题就是新手看不见）。 */
+.q-hint-inline {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+  margin: var(--sp-2) 0 calc(-1 * var(--sp-1));
+  line-height: 1.5;
+}
+
 .q-options {
   display: flex;
   flex-wrap: wrap;

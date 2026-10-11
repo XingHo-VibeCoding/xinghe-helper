@@ -28,25 +28,31 @@ export async function fetchCampName() {
 }
 
 // 契约 2.3 POST /api/students —— 学生报名
-// form 的字段与 StudentForm.jsx 的 collect() 输出一致:
-//   name / gender / teacher / classLevel / checkInDate / roomPref(数字) /
-//   snore(布尔或null) / sleepQuality / note
-//   ← 注意 classLevel 在前端是驼峰,这里要转成后端契约的 class_level。
-export async function submitStudent(form) {
+//入参直接是后端契约的行格式(下划线字段名),这里只补默认值,不再做驼峰→下划线的映射。
+//
+// Day 27 踩坑(第三方试用时暴露的真实 bug):
+//   原来这里写 class_level: form.classLevel / check_in_date: form.checkInDate /
+//   room_pref: Number(form.roomPref),而 StudentForm.jsx 的 toRow() **已经**转成下划线了。
+//   等于把同一件事做了两遍、方向还相反 —— toRow 的输出里根本没有 classLevel 这个 key,
+//   取出来全是 undefined,于是三个字段被发成 undefined,服务端一律报"不能为空"。
+//   而前端必填校验查的是驼峰 form,所以校验全绿、提交必挂,用户完全看不懂。
+//   教训:字段名转换只能有一个地方做,且调用方与被调用方必须说同一种语言。
+//     修复方式:映射只在 toRow() 做一次(它离用户输入最近),本函数只做兜底。
+export async function submitStudent(row) {
   if (useMockData) throw new Error('现在是演示数据模式(mock),提交功能需要配置 VITE_API_BASE_URL 连上公网接口后开放')
 
   // 返回 { id, updated }
   //   updated = true 说明这是重复提交(之前有过同名记录),页面文案要说"已更新"
   return apiPost('/api/students', {
     camp_id: CAMP_ID,
-    name: form.name,
-    gender: form.gender,
-    teacher: form.teacher,
-    class_level: form.classLevel,
-    check_in_date: form.checkInDate,
-    room_pref: Number(form.roomPref),
-    snore: form.snore === '' ? null : Boolean(form.snore),
-    sleep_quality: form.sleepQuality || null,
-    note: form.note || null,
+    name: row.name,
+    gender: row.gender,
+    teacher: row.teacher,
+    class_level: row.class_level,
+    check_in_date: row.check_in_date,
+    room_pref: row.room_pref,
+    snore: row.snore ?? null,
+    sleep_quality: row.sleep_quality ?? null,
+    note: row.note ?? null,
   })
 }
