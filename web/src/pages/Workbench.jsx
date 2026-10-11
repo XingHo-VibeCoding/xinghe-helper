@@ -301,6 +301,10 @@ export default function Workbench() {
   }
 
   async function handleDeleteRoom(room) {
+    // Day 26：防连点第二道防线。
+    //   与 handleAddRoom 同一个理由 —— 按钮的 disabled 只挡鼠标点击，
+    //   而这里还能被程序调用触发重复删除。守卫必须放在函数最开头。
+    if (busy) return
     const members = roomMembers(students, room.id)
     const ok = window.confirm(
       `确定删除 ${room.room_no} 房?` +
@@ -332,6 +336,10 @@ export default function Workbench() {
     setEditDraft({ room_no: room.room_no, capacity: String(room.capacity) })
   }
   async function saveEditRoom(room) {
+    // Day 26：防连点第二道防线，理由同 handleAddRoom / handleDeleteRoom。
+    //   连点「保存」会重复 PATCH，虽然后端幂等不至于坏数据，
+    //   但用户会看到多次请求、按钮无反馈，体验上等于坏掉。
+    if (busy) return
     const roomNo = editDraft.room_no.trim()
     const cap = Number(editDraft.capacity)
     const members = roomMembers(students, room.id)
@@ -583,8 +591,12 @@ export default function Workbench() {
                           value={editDraft.capacity}
                           onChange={(e) => setEditDraft((d) => ({ ...d, capacity: e.target.value }))}
                         />
-                        <button className="btn-plain" onClick={() => saveEditRoom(room)}>保存</button>
-                        <button className="btn-plain" onClick={() => setEditingRoomId(null)}>取消</button>
+                        <button className="btn-plain" onClick={() => saveEditRoom(room)} disabled={!!busy}>
+                          保存
+                        </button>
+                        <button className="btn-plain" onClick={() => setEditingRoomId(null)} disabled={!!busy}>
+                          取消
+                        </button>
                       </div>
                     ) : (
                       <>
@@ -595,7 +607,9 @@ export default function Workbench() {
                         </span>
                         <span className="room-tools">
                           <button className="btn-mini" onClick={() => startEditRoom(room)}>编辑</button>
-                          <button className="btn-mini btn-mini-danger" onClick={() => handleDeleteRoom(room)}>删除</button>
+                          <button className="btn-mini btn-mini-danger" onClick={() => handleDeleteRoom(room)} disabled={!!busy}>
+                            删除
+                          </button>
                         </span>
                       </>
                     )}
