@@ -11,6 +11,7 @@ const CLASSES = ['星一', '星二', '星三']
 // 现在统一成表单上的原话，提示里出现的字就是页面上能找到的字。
 const REQUIRED = [
   ['name', '姓名'],
+  ['phone', '手机号'],
   ['gender', '性别'],
   ['teacher', '带班老师'],
   ['classLevel', '班级'],
@@ -20,6 +21,7 @@ const REQUIRED = [
 
 const EMPTY_FORM = {
   name: '',
+  phone: '',
   gender: '',
   teacher: '',
   classLevel: '',
@@ -34,6 +36,10 @@ function toRow(f) {
   return {
     camp_id: 1,
     name: f.name.trim(),
+    // 去掉空格和横线再发：服务端也会做一次，这里先洗干净让用户看到的就是最终值。
+    // 为什么手机号要归一化：用户可能打成「139 1234 5678」，
+    // 去掉分隔符后手机号才能作为「同一个人的标识」稳定匹配。
+    phone: f.phone.trim().replace(/[\s-]/g, ''),
     gender: f.gender,
     teacher: f.teacher,
     class_level: f.classLevel,
@@ -43,6 +49,18 @@ function toRow(f) {
     sleep_quality: f.sleepQuality || null,
     note: f.note.trim() || null,
   }
+}
+
+// 手机号是否合格：非空 + 只剩数字 + 6–20 位
+// 为什么不在这里校验「1 开头的中式手机号」：
+//   营地里可能有座机、家长号码、海外号码。规则越窄越容易把真实数据挡在门外。
+//   这里要的不是「电信能识别的号码」，只是一个稳定唯一的标识。
+// 为什么 trim/replace 要重复服务端那一份：
+//   服务端 readPhone() 也会做同样的事。两边都做不冲突 ——
+//   前端做是为了即时提示，服务端做是为了防绕过。
+function isPhoneOk(v) {
+  const s = String(v || '').trim().replace(/[\s-]/g, '')
+  return s.length >= 6 && s.length <= 20 && /^\d+$/.test(s)
 }
 
 // 单选按钮组:大按钮、口语化,选中即"填过";missing=true 时整块高亮提示漏填
@@ -177,6 +195,37 @@ export default function StudentForm() {
             placeholder="请填写真实姓名"
             maxLength={50}
           />
+        </div>
+
+        {/* Day 28 新增：手机号。
+            为什么排在姓名后面 —— 它现在也是「同一个人」的判据，
+            填表的人会下意识把「谁」和「他的号码」连着填。
+            放在性别/班级这些选项之前，保持前两栏都是手写、后面都是点选。 */}
+        <div
+          className={`q ${missing.includes('phone') ? 'q-missing' : ''} ${
+            form.phone && isPhoneOk(form.phone) ? 'q-done' : ''
+          }`}
+        >
+          <div className="q-title">
+            你的手机号? <span className="q-required">*</span>
+            {form.phone && isPhoneOk(form.phone) && <span className="q-check">✓</span>}
+          </div>
+          <input
+            className="q-input"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            value={form.phone}
+            onChange={(e) => set('phone')(e.target.value)}
+            placeholder="11 位手机号,方便组织者有急事找到你"
+            maxLength={20}
+          />
+          {/* 填了但不合格时给一句说明 —— 不写"格式错误"这种话，
+              直接告诉用户应该长什么样。type="tel" + inputMode="numeric"
+              让手机弹出数字键盘，省掉切键盘这一步。 */}
+          {form.phone && !isPhoneOk(form.phone) && (
+            <p className="q-hint">请填一串数字,6–20 位。空格和横线可以不管。</p>
+          )}
         </div>
 
         <Choice

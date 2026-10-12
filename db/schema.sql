@@ -53,6 +53,10 @@ create table public.students (
   id               bigserial   primary key,
   camp_id          bigint      not null references public.camps(id),
   name             varchar(50) not null,
+  phone            varchar(20) not null,                 -- 手机号：判重主依据(Day 28)
+                                                        -- 为什么加它：原来判重只看姓名，
+                                                        -- 两个同名学生会互相顶掉（实测确认）。
+                                                        -- 必填后按它判：同名但号码不同 =两个人，互不影响。
   gender           varchar(2)  not null,
   teacher          varchar(20) not null,
   class_level      varchar(10) not null,

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import FormQrCode from '../components/FormQrCode.jsx'
 import Fish from '../components/Fish.jsx'
-import logo from '../assets/logo.png'
+import logo from '../assets/logo.jpg'
 
 // 组织者入口页(/):只有你自己通过书签/输网址进来,不出现在学生可见的任何地方
 // 学生能接触到的只有 /form;这页放二维码生成器和三个入口,是组织者的"工作台面"

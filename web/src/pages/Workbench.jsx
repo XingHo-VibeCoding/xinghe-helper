@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { runAssignment } from '../../../shared/assignEngine.js'
 import AsyncButton from '../components/AsyncButton.jsx'
 import {
@@ -11,6 +11,7 @@ import {
   saveHistorySnapshot,
   latestAiSnapshot,
 } from '../api/rooms.js'
+import { removeStudent } from '../api/students.js'
 
 // 手动分配的合法性校验:红线(男女混住)与超员 → 拒绝;睡眠冲突 → 允许但黄标提示
 function checkMove(student, room, members) {
@@ -37,14 +38,21 @@ function formatClock(d) {
   return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-function StudentChip({ s, onDragStart }) {
+function StudentChip({ s, onDragStart, onDelete, disabled }) {
+  // ⚠️ 拖拽卡片里放按钮的老问题:整块 div 是 draggable,
+  //   在按钮上按下鼠标时,浏览器会认为你想拖这张卡片而不是点按钮,
+  //   轻则按钮点不动,重则误触发一次拖拽。这里按住按钮时禁用拖拽,
+  //   松手后立刻恢复 —— 这是给 draggable 容器里的按钮打补丁的标准做法。
+  const draggingRef = useRef(false)
+  const [noDrag, setNoDrag] = useState(false)
+
   return (
     <div
       className="stu-chip"
-      draggable
+      draggable={!noDrag}
       onDragStart={(e) => {
-        e.dataTransfer.setData('text/student-id', String(s.id))
-        e.dataTransfer.effectAllowed = 'move'
+        if (draggingRef.current) return // 在按钮上按下的,不当拖拽
+        onDragStart(e)
       }}
     >
       <span className="stu-name">{s.name}</span>
@@ -53,6 +61,33 @@ function StudentChip({ s, onDragStart }) {
         {s.snore ? '·打呼' : ''}
         {s.sleep_quality === '差' ? '·睡眠差' : ''}
       </span>
+      {onDelete && (
+        <button
+          className="btn-mini btn-mini-danger stu-del"
+          title={`删除 ${s.name}`}
+          disabled={disabled}
+          onMouseDown={() => {
+            draggingRef.current = true
+            setNoDrag(true)
+          }}
+          onMouseUp={() => {
+            draggingRef.current = false
+            setNoDrag(false)
+          }}
+          onMouseLeave={() => {
+            // 鼠标按下后拖出按钮再松开,这里负责把状态还原,
+            //   否则卡片会永久失去拖拽能力。
+            draggingRef.current = false
+            setNoDrag(false)
+          }}
+          onClick={(e) => {
+            e.stopPropagation() // 别让点击冒泡到卡片上触发别的行为
+            onDelete(s)
+          }}
+        >
+          删除
+        </button>
+      )}
     </div>
   )
 }
@@ -372,6 +407,33 @@ export default function Workbench() {
     }
   }
 
+  // ===== 删除学生(契约 2.13)=====
+  // ⚠️ 这是真删,不是隐藏 —— 行从数据库里消失了。
+  //   所以二次确认的文案必须把「找不回来」说清楚,不能让用户以为只是藏起来了。
+  async function handleDeleteStudent(s) {
+    // 防连点第二道防线。理由与 handleDeleteRoom 完全相同:
+    //   按钮的 disabled 只挡鼠标,程序调用这条路径照样能进来。
+    if (busy) return
+    const ok = window.confirm(
+      `确定删除 ${s.name} 吗?\n` +
+        `他填的入住日期、带班老师、想拼几人都会一起消失,而且找不回来。\n` +
+        `(已经分到房间里的学生要先移回未分配才能删)`,
+    )
+    if (!ok) return
+    try {
+      setBusy('删除中…')
+      // 后端做两件事:先清掉别人对这条记录的引用,再删本体。
+      //   (students 表有自引用外键 superseded_by,不先清引用会删不掉。)
+      const res = await removeStudent(s.id)
+      await load()
+      setBusy('')
+      okFlash(`已删除 ${res?.name ?? s.name}`)
+    } catch (err) {
+      setBusy('')
+      flash(err.message)
+    }
+  }
+
   if (loading) return <section className="page"><p className="placeholder-note">加载中…</p></section>
   if (loadError)
     return (
@@ -498,7 +560,16 @@ export default function Workbench() {
                 </div>
                 {shownByGender[g].length === 0 && <p className="wb-none">暂无</p>}
                 {shownByGender[g].map((s) => (
-                  <StudentChip key={s.id} s={s} />
+                  <StudentChip
+                    key={s.id}
+                    s={s}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/student-id', String(s.id))
+                      e.dataTransfer.effectAllowed = 'move'
+                    }}
+                    onDelete={handleDeleteStudent}
+                    disabled={!!busy}
+                  />
                 ))}
               </div>
             ))}
@@ -511,7 +582,9 @@ export default function Workbench() {
               回到全部
             </div>
           )}
-          <p className="wb-hint">把学生拖到右边房间即可分配;拖回这里则移出房间。</p>
+          <p className="wb-hint">
+            把学生拖到右边房间即可分配;拖回这里则移出房间。删除是真正删除,填错的人删掉后找不回来。
+          </p>
         </aside>
 
         {/* ===== 右栏:房间卡片 ===== */}

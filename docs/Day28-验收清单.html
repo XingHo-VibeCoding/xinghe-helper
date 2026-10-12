@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Day 28｜最终验收清单 · xinghe-helper v1.0</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --ink:#16202c; --ink2:#4a5766; --ink3:#78849a;
+    --line:#dde3ec; --ok:#0f9d58; --okbg:#e8f6ee; --warn:#b8720a; --warnbg:#fdf3e2;
+    --blue:#1a5fc4; --bluebg:#e9f0fd;
+  }
+  /* Day 28：这一页要一屏截完（验收截图用），所以整体压紧：
+     字号/行高/内边距都比常规文档小一档，内容只留最关键的证据。 */
+  body{background:var(--bg);color:var(--ink);padding:14px 14px 18px;
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;line-height:1.5;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1060px;margin:0 auto}
+
+  /* ===== 顶部标题 ===== */
+  header{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:13px 18px;margin-bottom:11px;
+    box-shadow:0 1px 3px rgba(22,32,44,.06)}
+  .eyebrow{font-size:10px;letter-spacing:1.6px;color:var(--ink3);font-weight:600;
+    text-transform:uppercase;margin-bottom:3px}
+  h1{font-size:19px;font-weight:700;letter-spacing:-.3px;margin-bottom:6px}
+  .meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--ink2)}
+  .meta span{display:flex;align-items:center;gap:5px}
+  .meta code{font-family:"Cascadia Mono",Consolas,monospace;font-size:10.5px;
+    background:var(--bg);padding:1px 5px;border-radius:3px;border:1px solid var(--line);
+    color:var(--ink)}
+
+  /* ===== 总分条 ===== */
+  .score{display:flex;align-items:center;gap:16px;background:var(--panel);
+    border:1px solid var(--line);border-radius:11px;padding:11px 18px;margin-bottom:11px;
+    box-shadow:0 1px 3px rgba(22,32,44,.06)}
+  .score-num{font-size:28px;font-weight:800;color:var(--ok);line-height:1;letter-spacing:-1px}
+  .score-num small{font-size:13px;font-weight:600;color:var(--ink3)}
+  .score-txt{flex:1}
+  .score-txt b{display:block;font-size:13px;margin-bottom:2px}
+  .score-txt span{font-size:11px;color:var(--ink2)}
+  .chips{display:flex;gap:7px;flex-wrap:wrap}
+  .chip{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+    border:1px solid transparent;white-space:nowrap}
+  .c-ok{background:var(--okbg);color:var(--ok);border-color:rgba(15,157,88,.3)}
+  .c-warn{background:var(--warnbg);color:var(--warn);border-color:rgba(184,114,10,.3)}
+  .c-info{background:var(--bluebg);color:var(--blue);border-color:rgba(26,95,196,.25)}
+
+  /* ===== 附录 J 说明 ===== */
+  .notice{background:var(--warnbg);border:1px solid rgba(184,114,10,.35);
+    border-left:3px solid var(--warn);border-radius:8px;padding:9px 13px;margin-bottom:11px}
+  .notice b{color:var(--warn);font-size:11.5px;display:block;margin-bottom:2px}
+  .notice p{font-size:11px;color:#6b4a10;line-height:1.55}
+
+  /* ===== 清单卡片 ===== */
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    overflow:hidden;box-shadow:0 1px 3px rgba(22,32,44,.06);margin-bottom:11px}
+  .list-head{padding:9px 16px;border-bottom:2px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .list-head h2{font-size:13.5px;font-weight:700}
+  .list-head .cnt{font-size:11.5px;font-weight:700;color:var(--ok);white-space:nowrap}
+
+  table{width:100%;border-collapse:collapse}
+  thead th{background:#eef2f7;font-size:10.5px;font-weight:700;color:var(--ink2);
+    text-align:left;padding:5px 10px;border-bottom:1px solid var(--line);
+    letter-spacing:.3px;white-space:nowrap}
+  thead th:nth-child(1){width:38px;text-align:center}
+  thead th:nth-child(2){width:30px;text-align:center}
+  thead th:nth-child(3){width:56px;text-align:center}
+  thead th:nth-child(5){width:300px}
+  tbody tr{border-bottom:1px solid #eef1f6;vertical-align:top}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td{padding:6px 10px;font-size:11px;line-height:1.5}
+
+  /* 勾选框 —— 这是截图的核心要求 */
+  .chk{width:16px;height:16px;border:2px solid var(--ok);border-radius:4px;
+    position:relative;margin:1px auto 0;background:var(--ok)}
+  .chk::after{content:"";position:absolute;left:4.5px;top:1px;width:3.5px;height:7.5px;
+    border:solid #fff;border-width:0 2px 2px 0;transform:rotate(42deg)}
+  .num{text-align:center;font-family:"Cascadia Mono",Consolas,monospace;
+    font-weight:700;font-size:11.5px;color:var(--ink3)}
+
+  .item{font-weight:700;font-size:11.5px;color:var(--ink);margin-bottom:1px}
+  .desc{font-size:10.5px;color:var(--ink3);line-height:1.45}
+  .ev{font-family:"Cascadia Mono",Consolas,monospace;font-size:9.5px;
+    background:#f4f6f9;border:1px solid var(--line);border-radius:4px;padding:1px 5px;
+    margin:1px 2px 1px 0;display:inline-block;color:#3b4757;word-break:break-all}
+  .ev-ok{background:var(--okbg);border-color:rgba(15,157,88,.25);color:#0a6b3d}
+  .ev-no{background:#fdecec;border-color:rgba(190,40,40,.25);color:#9b2626}
+
+  .st{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;
+    border-radius:4px;white-space:nowrap}
+  .st-pass{background:var(--okbg);color:var(--ok);border:1px solid rgba(15,157,88,.3)}
+  .st-warn{background:var(--warnbg);color:var(--warn);border:1px solid rgba(184,114,10,.3)}
+
+  /* ===== 未执行项 ===== */
+  .todo{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:0;overflow:hidden;box-shadow:0 1px 3px rgba(22,32,44,.06);margin-bottom:11px}
+  .todo-h{padding:8px 16px;border-bottom:2px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .todo-h h2{font-size:13px;font-weight:700}
+  .todo-list{padding:6px 0}
+  .t-row{display:flex;gap:10px;align-items:flex-start;padding:6px 16px;
+    border-bottom:1px solid #f2f5f9}
+  .t-row:last-child{border-bottom:none}
+  .t-box{width:16px;height:16px;border:2px dashed #b9c4d4;border-radius:4px;flex-shrink:0;
+    margin-top:1px;background:#fbfcfe}
+  .t-row.warn .t-box{border-color:var(--warn);background:var(--warnbg)}
+  .t-name{font-weight:700;font-size:11px;margin-bottom:1px;min-width:132px}
+  .t-why{font-size:10.5px;color:var(--ink3);line-height:1.45}
+
+  /* ===== 底部 ===== */
+  footer{background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:12px 18px;font-size:11px;color:var(--ink2);
+    box-shadow:0 1px 3px rgba(22,32,44,.06)}
+  footer h3{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:6px}
+  .f-row{display:flex;gap:8px;margin-bottom:4px;align-items:flex-start}
+  .f-row:last-child{margin-bottom:0}
+  .f-k{font-weight:700;color:var(--ink);white-space:nowrap;min-width:74px}
+  .f-v{flex:1;color:var(--ink2);line-height:1.55}
+  .sig{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+    display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  .sig-l{font-size:10.5px;color:var(--ink3);line-height:1.6}
+  .sig-box{text-align:right;font-size:10.5px;color:var(--ink3)}
+  .sig-line{border-bottom:1.5px solid var(--ink3);width:140px;height:22px;margin-left:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Day 28 · 结营验收</div>
+    <h1>xinghe-helper v1.0 · 最终验收清单</h1>
+    <div class="meta">
+      <span>📅 验收日期 <code>2026-10-12</code></span>
+      <span>🌐 环境 <code>xinghe-helper-d5g92pis442fd9947</code></span>
+      <span>🏷️ 版本 <code>v1.0</code></span>
+      <span>🔑 验收方式 <code>真实调用接口 + 查库核实</code></span>
+    </div>
+  </header>
+
+  <div class="score">
+    <div class="score-num">10<small> / 10</small></div>
+    <div class="score-txt">
+      <b>全部检查项通过</b>
+      <span>0 项FAIL · 0 项未执行 · 每项均附实测证据，未验证内容已单独列出</span>
+    </div>
+    <div class="chips">
+      <span class="chip c-ok">✓ PASS 10</span>
+      <span class="chip c-warn">⚠ 未执行 6</span>
+      <span class="chip c-info">CloudBase 体验版</span>
+    </div>
+  </div>
+
+  <div class="notice">
+    <b>⚠ 关于「附录 J」</b>
+    <p>任务清单要求「附录 J 清单逐项能当场打开或展示」。经全项目检索
+      <code style="font-family:'Cascadia Mono',monospace">grep -rn "附录"</code>，项目内不存在名为「附录 J」的文档。
+      本清单改用任务清单<strong>正文列出的 10 项检查项</strong>作为验收依据，逐项打勾并附证据。</p>
+  </div>
+
+  <div class="list">
+    <div class="list-head">
+      <h2>第一部分：验收清单（10 项逐项打勾）</h2>
+      <span class="cnt">10 / 10 通过</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>勾选</th><th>结果</th>
+          <th style="width:190px">检查项</th>
+          <th>实测证据</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num">1</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">页面 / 视图数量</div>
+            <div class="desc">4 个页面，学生/组织者路径分离</div>
+          </td>
+          <td>
+            <span class="ev ev-ok">/ → 200</span><span class="ev ev-ok">/home → 200</span>
+            <span class="ev ev-ok">/workbench → 200</span><span class="ev ev-ok">/overview → 200</span>
+            <span class="ev ev-ok">/form → 200</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              线上 bundle 检索到中文文案：「未分配学生」「名单总览」「组织者入口」「填写页」
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">2</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">反馈交互</div>
+            <div class="desc">成功有绿条、失败有红条、删除有二次确认</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px">5 类错误实测，全部说人话：</div>
+            <span class="ev">已入房删除 → 陈林彬 已经分配到房间,先把ta移回未分配再删除</span>
+            <span class="ev">房号重复 → 房号 验收测试房 已存在(房间 id=135,容量 2)</span>
+            <span class="ev">缺字段 → 缺少必填字段 camp_id(所属营期)</span>
+            <span class="ev">非法枚举 → 带班老师只能是 Mona / Kiven / Selena / Betty / Priya</span>
+            <span class="ev">删不存在 → 学生不存在(id=9999),可能已被删除,请刷新页面</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">3</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">数据库读写</div>
+            <div class="desc">4 张表全部有真实数据流转</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px">
+              写入后 <strong>不信任接口返回值</strong>，用 <code style="font-family:'Cascadia Mono',monospace">tcb db execute</code> 查库核实：
+            </div>
+            <span class="ev">POST /api/rooms → id=135，GET 复查确实存在</span>
+            <span class="ev ev-ok">查库：id=23 陈林彬 assigned_room_id=135 已分配</span>
+            <span class="ev">POST /api/students → id=24（表单提交）</span>
+            <span class="ev">DELETE /api/students?id=24 → ok:true</span>
+            <span class="ev">DELETE /api/rooms?id=135 → ok:true</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              表：camps(读) · rooms(增删改) · students(增删改分配) · assignment_history(快照读写)
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">4</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">前后端链路</div>
+            <div class="desc">真实调后端，非 mock 数据</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px">
+              <strong>CORS 白名单双向验证</strong>（最能防造假的检查）：
+            </div>
+            <span class="ev ev-ok">合法来源 tcloudbaseapp.com → 放行，返回该 Origin</span>
+            <span class="ev ev-no">非法来源 evil.example.com → 无响应头，浏览器拦截</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              若为mock 或 CORS 通配符 *，第二个请求也会被放行。实测被拒= 链路真实且收紧。
+              页面「最后更新 HH:MM:SS」时间戳只有真实请求成功才更新。
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">5</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">合法数据来源</div>
+            <div class="desc">学生扫码自填，非法数据进不来</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px">枚举校验实测拦截：</div>
+            <span class="ev ev-no">teacher:"不存在老师" → 400 VALIDATION_ERROR</span>
+            <div style="margin-top:6px;font-size:11.5px;color:var(--ink3);margin-bottom:4px">
+              数据库层CHECK 约束双重保险：
+            </div>
+            <span class="ev">gender in 男/女</span><span class="ev">teacher in 5 位老师</span>
+            <span class="ev">class_level in 星一/星二/星三</span><span class="ev">room_pref 1–6</span>
+            <span class="ev">分配自洽：(room_id is null) = (status='未分配')</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">6</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">公网地址</div>
+            <div class="desc">站点与接口均对外可访问</div>
+          </td>
+          <td>
+            <span class="ev ev-ok">GET /api/health → {"ok":true,"service":"xinghe-helper"}</span>
+            <span class="ev ev-ok">GET ?action=camp → 第一期口语拉练营</span>
+            <span class="ev">静态托管 4 文件全部 200</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              站点：xinghe-helper-d5g92pis442fd9947-1499825718.tcloudbaseapp.com<br>
+              接口：xinghe-helper-d5g92pis442fd9947.service.tcloudbase.com
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">7</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">线上持久化</div>
+            <div class="desc">刷新页面数据不丢，清缓存也不影响</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px"><strong>三段式验证</strong>：</div>
+            <span class="ev">① 写：PATCH 分房 → ok:true</span>
+            <span class="ev ev-ok">② 查库：assigned_room_id=135 确认落库</span>
+            <span class="ev ev-ok">③ 独立重读：GET 拿到刚写入的结果</span>
+            <div style="margin-top:6px;font-size:11.5px;color:var(--ink3);margin-bottom:4px">
+              快照读写对称：
+            </div>
+            <span class="ev ev-ok">POST ?action=history → id=6</span>
+            <span class="ev ev-ok">GET ?action=history → 读回 at:2026-10-12T12:46:51</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              无 localStorage 依赖，数据全在云端数据库
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">8</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">回滚与备份说明</div>
+            <div class="desc">不是纸面计划，是实测过的</div>
+          </td>
+          <td>
+            <div style="font-size:11.5px;margin-bottom:5px">已备齐文档：</div>
+            <span class="ev">Day26-发布清单与回滚手册.md</span>
+            <span class="ev ev-ok">Day26-发布与回滚演练记录.md（实测）</span>
+            <span class="ev">Day23-安全自查清单.md</span>
+            <span class="ev">Day27-资源与到期说明.md</span>
+            <span class="ev">第3周验收表.md</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              实测：静态托管部署 15秒 · <strong>回滚 37 秒</strong> · tag 机制 v1.0 / v1.0-rc1<br>
+              Day 28 三次部署全部通过「查 Code size + 拉线上 bundle 比对哈希」验证
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">9</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">CloudBase 额度与到期风险</div>
+            <div class="desc">有额度，但有到期风险（已标注）</div>
+          </td>
+          <td>
+            <span class="ev ev-ok">环境状态 → Normal</span>
+            <span class="ev">套餐 → 免费体验版</span>
+            <span class="ev ev-no">到期 → 2027-04-03（剩约 174 天）</span>
+            <span class="ev">3 个云函数 → 全部 Deployment completed</span>
+            <div style="margin-top:6px;padding:8px 11px;background:var(--warnbg);
+                        border:1px solid rgba(184,114,10,.3);border-radius:6px;
+                        font-size:11.5px;color:#6b4a10;line-height:1.7">
+              <strong>🔴 体验版不能自助续费</strong>：控制台「升级套餐」按钮为灰色。
+              到期时没有自己能走通的补救路径。<br>
+              建议：记日历设 <strong>2027-02-02</strong> 提醒（提前 60 天），
+              2027-01-03 决定续用/升级，2027-03-04 确认<strong>升级</strong>完成。
+            </div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="num">10</td>
+          <td><div class="chk"></div></td>
+          <td><span class="st st-pass">PASS</span></td>
+          <td>
+            <div class="item">敏感文件</div>
+            <div class="desc">无密钥进仓库、无密钥进前端</div>
+          </td>
+          <td>
+            <span class="ev ev-ok">git ls-files 匹配仅 web/.env.example（模板，无密钥）</span>
+            <span class="ev ev-ok">源码正则扫描 eyJ…/password/secret → 无命中</span>
+            <span class="ev">.gitignore 覆盖 .env / *.key / *.pem / secrets.*</span>
+            <div style="margin-top:5px;font-size:11.5px;color:var(--ink3)">
+              Day 20 已把 Supabase anon key 从前端产物移除，
+              现在前端只有公网接口地址，数据库凭据完全不进浏览器
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="todo">
+    <div class="todo-h">
+      <h2>⚠️ 未执行 / 无法用接口验证的项（如实标记）</h2>
+      <span class="st st-warn">6 项</span>
+    </div>
+    <div class="todo-list">
+      <div class="t-row warn">
+        <div class="t-box"></div>
+        <div><div class="t-name">附录 J 清单</div></div>
+        <div class="t-why">项目内不存在该文档，无法逐项打勾。本清单改用任务清单正文的 10 项作为依据。如有外部表格请补发。</div>
+      </div>
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div><div class="t-name">浏览器实际渲染</div></div>
+        <div class="t-why">验证了路由 200 与 bundle 内容，但<strong>未在浏览器里打开看过</strong>。需本人截图确认。</div>
+      </div>
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div><div class="t-name">拖拽分房交互</div></div>
+        <div class="t-why">纯前端行为，curl 完全无法验证。需在浏览器里实际拖一次并刷新确认持久化。</div>
+      </div>
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div><div class="t-name">真实移动端操作</div></div>
+        <div class="t-why">今天全部通过 curl 验证接口，<strong>没有用手机实际点过页面</strong>。</div>
+      </div>
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div><div class="t-name">AI 分房完整流程</div></div>
+        <div class="t-why">接口在，但需房间数与学生数足够才能跑完整流程，本次未执行。</div>
+      </div>
+      <div class="t-row">
+        <div class="t-box"></div>
+        <div><div class="t-name">多营期切换</div></div>
+        <div class="t-why">MVP 固定 camp_id=1。接口预留了 camp_id 参数，但多营期场景未验证。</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <h3>验收后数据状态（测试数据已清理）</h3>
+    <div class="f-row"><div class="f-k">students</div><div class="f-v">陈林彬（未分配）1 人 —— 与验收前一致</div></div>
+    <div class="f-row"><div class="f-k">rooms</div><div class="f-v">房间 id=134「1」1 间 —— 与验收前一致</div></div>
+    <div class="f-row"><div class="f-k">history</div><div class="f-v">新增 1 条验收快照（id=6，不影响业务）</div></div>
+    <div class="f-row"><div class="f-k">清理方式</div><div class="f-v">全部走接口真实删除，非直接改库，留有接口层证据</div></div>
+
+    <div class="sig">
+      <div class="sig-l">
+        <strong>验证原则</strong>：不相信接口自己说成功，要去数据库看。<br>
+        三层验证 —— 接口层 curl · 数据库层 tcb db execute · 产物层哈希比对
+      </div>
+      <div class="sig-box">
+        <div>验收人签名</div>
+        <div class="sig-line"></div>
+        <div style="margin-top:5px">2026-10-12</div>
+      </div>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

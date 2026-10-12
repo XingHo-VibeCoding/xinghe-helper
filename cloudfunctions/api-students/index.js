@@ -21,7 +21,15 @@
 //   POST   /api/students?action=history            → 2.11 保存 AI 分房快照
 //   GET    /api/students?action=history&camp_id=1 → 2.12 读最近一次 AI 快照
 //   PATCH  /api/students?id=12                     → 2.9 单人分配/取消分配
+//   DELETE /api/students?id=&camp_id=              → 2.13 删除学生(Day 28 新增)
 //   GET    /api/students?action=camp&camp_id=1     → 2.2 营期信息
+//
+// ⚠️ 2.13 与整个接口族的分歧(必须知道):
+//   2.3 重复提交时旧记录只标 is_latest=false,不物理删除 —— 那是**留痕**。
+//   2.13 是工作台上的「删除」,是**真删**,行从表里消失。
+//   两者并存不矛盾:2.3 管的是「学生自己改了信息,旧的那份留个记录」,
+//   2.13 管的是「工作台上的这份名单不该有这个人」(填错、重复提交、退营了)。
+//   代价是 2.13 删掉就找不回来了,前端必须二次确认(见 Workbench.jsx)。
 //
 // Day 19 立下的分层规矩在这里同样生效:index.js 里不出现 db.from(...)。
 //   所有查询都在 students.repo.js 里。
@@ -65,6 +73,9 @@ exports.main = async (event) => {
 
     // ---- PATCH:改单个学生的分配 ----
     if (method === 'PATCH') return assignStudent(event, origin)
+
+    // ---- DELETE:删一个学生(Day 28 新增,契约 2.13) ----
+    if (method === 'DELETE') return deleteStudent(event, origin)
 
     // ---- GET:全是读操作 ----
     if (action === 'camp') return getCamp(event, origin)
@@ -148,6 +159,8 @@ async function submitStudent(event, origin) {
   //   在这里先校验,就不必等数据库抛一句英文的 check violation。
   const errors = []
   const name = readRequiredText(body?.name, '姓名', 50, errors)
+  // 手机号：Day 28 新增，同时是「同一个人」的判重依据（原来只看姓名，同名会互相顶替）
+  const phone = readPhone(body?.phone, errors)
   const gender = readRequiredText(body?.gender, '性别', 2, errors)
   const teacher = readRequiredText(body?.teacher, '带班老师', 20, errors)
   const classLevel = readRequiredText(body?.class_level, '年级/班级', 10, errors)
@@ -194,6 +207,7 @@ async function submitStudent(event, origin) {
     const { data: created, error: insertErr } = await studentsRepo.insertOne({
       camp_id: campId,
       name,
+      phone,
       gender,
       teacher,
       class_level: classLevel,
@@ -214,15 +228,18 @@ async function submitStudent(event, origin) {
 
     // 重复提交:保留全部提交痕迹,但把旧的标成 is_latest=false,
     //   工作台只认最新那条。superseded_by 记下"这条被哪条取代了",形成可追溯链条。
-    const { error: supErr } = await studentsRepo.supersedeSameName(campId, name, created.id)
+    // ⚠️ Day 28：判重依据从「姓名」改成「手机号」。
+    //   原来同名就会被判成同一个人，第二个同名学生一提交，
+    //   第一个就从工作台消失（静默丢数据）。现在同名但号码不同 = 两个人，互不影响。
+    const { error: supErr } = await studentsRepo.supersedeSamePhone(campId, phone, created.id)
     if (supErr) {
       // 这一步失败不阻断本次提交 —— 学生已经报上名了,让页面显示"提交成功"
       //   比让它转圈等下去更实际。错误留在日志里,后续可人工核对。
       console.error('[api-students] 标记旧提交失效失败(不影响本次提交):', supErr)
     }
 
-    // 告诉前端这是"新增"还是"更新":查一下这个名字有没有历史提交(被取代的)。
-    const { count: historyCount, error: cntErr } = await studentsRepo.countSuperseded(campId, name)
+    // 告诉前端这是"新增"还是"更新":查一下这个手机号有没有历史提交(被取代的)。
+    const { count: historyCount, error: cntErr } = await studentsRepo.countSuperseded(campId, phone)
     if (cntErr) {
       console.error('[api-students] 统计历史提交失败:', cntErr)
     }
@@ -280,6 +297,70 @@ async function assignStudent(event, origin) {
       return fail(404, 'STUDENT_NOT_FOUND', `学生不存在(id=${studentId}),请刷新页面`, origin)
     }
     return ok(data, origin)
+  } catch (err) {
+    console.error('[api-students] 异常:', err)
+    return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
+  }
+}
+
+// ============================================================
+// 2.13 DELETE /api/students?id=&camp_id= —— 删除学生(Day 28 新增)
+//
+// 形态与 2.8 删房间完全一致(id 走查询参数而非路径),
+//   原因同 main 入口的注释:控制台路径 passthrough = Disable,/:id 传不进来。
+//
+// ⚠️ 这一条与 2.3 的分工(别搞混):
+//   2.3 重复提交 → 旧行 is_latest=false,**留痕不删**。
+//   2.13 工作台删除 → **真删**,行消失。
+//
+// 为什么要单独开一个接口,而不是复用 PATCH 加个 action?
+//   语义不同就不能复用:PATCH 改的是学生记录的一部分字段,
+//   DELETE 是整行消失。混在一个接口里,以后看日志时分不清
+//   「谁把赵子昂改了」和「谁把赵子昂删了」。
+//
+// 返回 { id, name } —— 把姓名带回去,前端可以直接说
+// 「已删除 赵子昂」,不用自己再去列表里找名字(可能已经不在了)。
+async function deleteStudent(event, origin) {
+  const q = event?.queryStringParameters || {}
+  const rawStudentId = q.id ?? event?.id
+  const rawCampId = q.camp_id ?? event?.camp_id
+
+  // id 和 camp_id 都要:只凭 id 定位的话,操作 A 营期的人能删掉 B 营期的学生。
+  const { value: studentId, error: idErr } = validateCampId(rawStudentId)
+  if (idErr) return fail(400, 'VALIDATION_ERROR', '缺少必填参数 id(学生 id):' + idErr, origin)
+
+  const { value: campId, error: campIdErr } = validateCampId(rawCampId)
+  if (campIdErr) return fail(400, 'VALIDATION_ERROR', campIdErr, origin)
+
+  try {
+    // ---- 1. 先确认这个人存在,且属于本次操作的营期 ----
+    const { data: student, error: findErr } = await studentsRepo.findById(studentId, campId)
+    if (findErr) {
+      console.error('[api-students] 查询待删学生失败:', findErr)
+      return failServer('读取学生失败', 'DB_ERROR', origin)
+    }
+    if (!student) {
+      return fail(404, 'STUDENT_NOT_FOUND', `学生不存在(id=${studentId}, camp_id=${campId}),可能已被删除,请刷新页面`, origin)
+    }
+
+    // ---- 2. 已经入房的人不许在这儿删 ----
+    //   前端只在「未分配」名单里放删除按钮,理论上不会传已分配的人上来。
+    //   但这一道不能省:页面可能开着、分配可能刚变,只要有一个窗口过期,
+    //   就会出现「人在 305 房住着、名字却从名单里被抹掉」的情况。
+    //   那时 room_members 查不到他,房间显示的入住人数和实际对不上,更难查。
+    if (student.assigned_room_id) {
+      return fail(400, 'STUDENT_ASSIGNED', `${student.name} 已经分配到房间,先把ta移回未分配再删除`, origin)
+    }
+
+    // ---- 3. 真删 ----
+    //   内部两步(清 superseded_by 引用 → 删本体),理由见 students.repo.remove 的注释。
+    const { error: delErr, phase } = await studentsRepo.remove(studentId, campId)
+    if (delErr) {
+      console.error(`[api-students] 删除学生失败(${phase}):`, delErr)
+      return failServer('删除学生失败', 'DB_ERROR', origin)
+    }
+
+    return ok({ id: studentId, name: student.name }, origin)
   } catch (err) {
     console.error('[api-students] 异常:', err)
     return failServer('服务器内部错误', 'INTERNAL_ERROR', origin)
@@ -481,6 +562,36 @@ function readOptionalEnum(raw, label, allowed, errors) {
   const s = String(raw).trim()
   if (!allowed.includes(s)) {
     errors.push(`${label}只能是 ${allowed.join(' / ')},当前收到:${JSON.stringify(raw)}`)
+    return null
+  }
+  return s
+}
+
+// 手机号:必填 + 只收数字(Day 28)
+//
+// 为什么服务端也要校验，不能只靠前端:
+//   前端校验是为了给用户即时反馈，但页面可以被绕过（直接调接口）。
+//   而且「手机号是判重依据」—— 如果这里放过去一个乱填的值，
+//   会把两个不同的人判成同一个人，正是 Day 28 要修的那个 bug。
+//   所以数据库 NOT NULL 之外，这里再挡一道。
+//
+// 为什么不校验成「合法手机号」（1[3-9] 开头等）：
+//   营地里可能有座机、家长号码、海外号码。规则越窄越容易把真实数据挡在门外，
+//   而这里只是要一个「稳定且唯一」的标识，不是在做电信实名。
+//   只要求：非空、全数字、长度 6–20（够用且能容纳带区号的座机）。
+function readPhone(raw, errors) {
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    errors.push('手机号不能为空')
+    return null
+  }
+  // 先去掉用户可能输入的空格和横线:139 1234 5678 也是常见写法。
+  const s = String(raw).trim().replace(/[\s-]/g, '')
+  if (!/^\d+$/.test(s)) {
+    errors.push('手机号只能填数字(空格和横线会自动去掉)')
+    return null
+  }
+  if (s.length < 6 || s.length > 20) {
+    errors.push(`手机号位数不对,当前 ${s.length} 位`)
     return null
   }
   return s

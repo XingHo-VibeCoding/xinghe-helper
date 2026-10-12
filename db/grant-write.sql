@@ -160,3 +160,62 @@ order by table_name, privilege_type;
 -- ---------- 4. 接入真实学生数据前，收回写权限（到时候跑这段） ----------
 -- revoke insert, update on table public.students from anon;
 -- revoke insert on table public.assignment_history from anon;
+
+
+-- ============================================================
+-- Day 28 追加：给 students 开 DELETE 权限（契约 2.13 删除学生）
+-- ============================================================
+-- 【为什么现在才开】
+--   上面 Day 20 那段特意写了「students 不开 DELETE」，理由是「契约里也没有删除
+--   学生这个接口，不需要的能力就不开权限」。Day 28 加了 2.13 DELETE /api/students，
+--   前提变了，所以权限跟着放开。
+--
+-- 【⚠️ 这段开权限的风险说明 · Day 28 复核结论】
+--   Day 28 复核后，结论是【当前阶段开这个权限是可接受的】，理由：
+--     ① 这个项目有两道现成的防线挡着（不是新增的，是 Day 20 早就做好的）：
+--        · cors.js 白名单只放自己的静态托管域名 —— 第三方网站发不出跨域请求
+--        · App.jsx 的 ORGANIZER_PATHS 把导航限制在组织者页面，学生只看得到 /form
+--     ② 接口链接不公开对外，只发给组织者。所以需要担心的人不是「街上随便谁」，
+--        而是「知道链接的人」—— 对冬令营组织者来说这个范围约等于自己。
+--   真正做不到的是「链接泄露后无法追回」，所以前端二次确认是必须的：
+--     点下去数据就没了，服务端不会再拦一次。
+--
+-- 【待办 · 什么时候需要做】
+--   出现下面任一情况就执行【第 4 节】收回 GRANT，并把接口改成登录态校验：
+--     · 接入真实学生报名数据
+--     · 链接扩散到组织者之外（发到学生群、公开分享、出现在截图里）
+--   收回后 DELETE 接口会全部报 permission denied，删除按钮也会点不动 —— 那是预期的。
+
+-- 【执行方式】
+--   控制台 → 云开发 → 数据库 → SQL 编辑器 → 全选本段 → 执行
+-- ============================================================
+
+
+-- ---------- 1. 先看清现状：students 现在有哪些权限 ----------
+-- 预期：只有 INSERT / SELECT / UPDATE，没有 DELETE
+select table_name, privilege_type
+from information_schema.role_table_grants
+where grantee = 'anon' and table_schema = 'public' and table_name = 'students'
+order by privilege_type;
+
+
+-- ---------- 2. 开 DELETE 权限（本段是要执行的） ----------
+grant delete on table public.students to anon;
+
+
+-- ---------- 3. 跑完验证：应该能看到 4 种权限 ----------
+select privilege_type
+from information_schema.role_table_grants
+where grantee = 'anon' and table_schema = 'public' and table_name = 'students'
+order by privilege_type;
+-- 预期输出：DELETE / INSERT / SELECT / UPDATE 各 1 行
+
+
+-- ---------- 4. 接入真实学生数据前，收回 DELETE（到时候跑这段） ----------
+-- ⚠️ 收回之后，2.13 DELETE /api/students 就会全部报 permission denied。
+--    那时工作台上的删除按钮也会点不动 —— 这是预期的，
+--    因为那时候应该已经换成登录态校验的管理员接口了。
+-- revoke delete on table public.students from anon;
+-- revoke insert, update on table public.students from anon;
+-- revoke insert on table public.assignment_history from anon;
+

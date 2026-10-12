@@ -936,6 +936,36 @@ textarea.q-input {
   cursor: grab;
 }
 
+/* Day 28:卡片右侧的「删除」按钮(契约 2.13)
+   为什么改成 flex —— 原来姓名和元信息是靠 inline 排列自然换行的,
+   现在末尾多了一个按钮,不改成 flex 就没法把它稳定地推到最右边。
+   .stu-meta 加 flex:1 是关键:让元信息占满中间剩余空间,
+   姓名和按钮自然被推到两端,元信息过长时也能正确省略而不是顶掉按钮。
+   只影响未分配列表(.stu-chip-inroom 在下面另有规则,不受影响)。*/
+.stu-chip:has(.stu-del) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.stu-chip:has(.stu-del) .stu-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 按钮在卡片里容易误触,给足点击区域;再禁掉文字选中,
+   否则快速连点时会顺带把姓名选中,页面出现一片蓝色高亮。*/
+.stu-del {
+  flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stu-del:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .stu-chip:active {
   cursor: grabbing;
 }
@@ -1486,16 +1516,29 @@ textarea.q-input {
   letter-spacing: 0.18em;
 }
 
-/* 集团 logo:白底圆角衬垫,避免 logo 白底与深海底硬碰 */
+/* 星穗 logo(Day 28 换图)
+   ⚠️ 为什么这次去掉了白色衬垫：
+   旧 logo 是白底矢量图，放在深蓝海底上需要一个白色圆角衬垫「垫」着才不突兀
+   （原来的 background:#ffffff + padding 就是干这个的）。
+   现在换的图自带深蓝渐变背景（实测四角约 rgb(3,24,43) ~ rgb(15,61,85)），
+   和页面的海底几乎同色 —— 再套一层白底就变成「白框里一张深蓝图」，反而更难看。
+
+   ⚠️ 为什么不用圆形裁切（试过，效果不好）：
+   人物是张开双臂的姿势，两侧还有星星装饰。用圆形 mask 会把两臂和星星全切掉，
+   主体反而残缺。圆角矩形能把整张图完整保住，所以只用 border-radius。
+
+   为什么保留一个很淡的描边：
+   图的背景和页面海底同色，不描边的话图像「消失」在背景里；描边给出一个边界，
+   让它看起来是徽章而不是糊在背景里的一块。透明度压到很低，避免抢主体。 */
 .home-page.ocean .home-logo {
   display: block;
-  width: 88px;
+  width: 112px; /* 比原来的 88px 大一些：图中四周有留白，太小看不清脸 */
   height: auto;
   margin: 0 auto var(--sp-3);
-  background: #ffffff;
-  padding: var(--sp-2);
-  border-radius: var(--r-md);
-  box-shadow: 0 0 20px rgba(63, 208, 232, 0.35);
+  border-radius: var(--r-lg);
+  border: 1px solid rgba(140, 220, 245, 0.28);
+  /* 外发光沿用原来的青色，让它在海底里「发一点光」，主体更突出 */
+  box-shadow: 0 0 28px rgba(63, 208, 232, 0.4);
 }
 
 .home-page.ocean .home-head h1 {
