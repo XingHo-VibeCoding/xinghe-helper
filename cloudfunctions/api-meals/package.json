@@ -1,0 +1,10 @@
+{
+  "name": "api-meals",
+  "version": "1.0.0",
+  "description": "xinghe-helper 接口：订餐 3 个接口（提交订单 / 按天汇总 / 日期列表），学生与工作人员同一张表靠 role 区分",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.1"
+  }
+}

@@ -2,8 +2,8 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import OceanScene from './components/OceanScene.jsx'
 
 // 组织者页面路径:导航只在这些页面显示
-// 学生能接触到的只有 /form(根网址/输错网址都会跳过去),导航对学生完全隐藏
-const ORGANIZER_PATHS = ['/home', '/workbench', '/overview']
+// 学生能接触到的是 /form 与订餐的 /meal、/staff-meal(公开页,导航对它们完全隐藏)
+const ORGANIZER_PATHS = ['/home', '/workbench', '/overview', '/meals/qr', '/meals/summary']
 
 export default function App() {
   const { pathname } = useLocation()
@@ -27,6 +27,12 @@ export default function App() {
             </NavLink>
             <NavLink to="/overview" className={({ isActive }) => (isActive ? 'active' : '')}>
               名单总览
+            </NavLink>
+            <NavLink to="/meals/qr" className={({ isActive }) => (isActive ? 'active' : '')}>
+              订餐码
+            </NavLink>
+            <NavLink to="/meals/summary" className={({ isActive }) => (isActive ? 'active' : '')}>
+              订餐汇总
             </NavLink>
           </nav>
         )}

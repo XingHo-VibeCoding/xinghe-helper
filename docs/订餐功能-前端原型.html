@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>订餐统计 · 前端原型（演示）</title>
+<style>
+:root {
+  --ink-1: #1f1f1f; --ink-2: #4a4a4a; --ink-3: #6b6b6b;
+  --line-soft: #efefef; --line: #d9d9d9; --line-ctrl: #8c8c8c;
+  --danger: #c62828; --danger-bg: #fdecea; --danger-line: #e57373; --danger-ink: #b71c1c;
+  --warn-bg: #fdf6e3; --warn-line: #f0c33c; --warn-ink: #8a6d1a;
+  --ok-bg: #e8f5e9; --ok-ink: #2e7d32;
+  --fs-h1: 24px; --fs-h2: 18px; --fs-h3: 16px; --fs-sm: 14px; --fs-xs: 13px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --gutter: 20px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px;
+  --focus-ring: 3px solid var(--ink-1);
+  --student: #185fa5; --student-bg: #e6f1fb; --student-line: #378add;
+  --staff: #854f0b; --staff-bg: #fdf1dc; --staff-line: #ba7517;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: var(--fs-h3); line-height: 1.6; color: var(--ink-1);
+  background: linear-gradient(180deg, #04182a 0%, #06283f 45%, #0a3a56 100%) fixed;
+  min-height: 100vh; padding: var(--sp-5) var(--gutter) var(--sp-6);
+}
+.demo-note {
+  max-width: 760px; margin: 0 auto var(--sp-4);
+  background: var(--warn-bg); border: 1px solid var(--warn-line);
+  border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4);
+  color: var(--warn-ink); font-size: var(--fs-sm);
+}
+.demo-note strong { display: block; margin-bottom: var(--sp-1); font-size: var(--fs-h3); }
+.tabbar { max-width: 760px; margin: 0 auto var(--sp-4); display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.tabbar button {
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md);
+  border: 1px solid rgba(122,223,255,.35); background: rgba(255,255,255,.08);
+  color: #a8d4e6; transition: background-color .15s;
+}
+.tabbar button:hover { background: rgba(122,223,255,.18); }
+.tabbar button:focus-visible { outline: 3px solid #7adfff; outline-offset: 2px; }
+.tabbar button[aria-selected="true"] { background: #7adfff; color: #042c53; border-color: #7adfff; font-weight: 600; }
+.panel {
+  max-width: 760px; margin: 0 auto; background: rgba(255,255,255,.94);
+  border: 1px solid rgba(63,208,232,.25); border-radius: var(--r-lg);
+  padding: var(--sp-5); box-shadow: 0 8px 32px rgba(2,12,22,.45);
+}
+.panel[hidden] { display: none; }
+.whoami {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+  margin-bottom: var(--sp-4); border: 1px solid;
+}
+.whoami.student { background: var(--student-bg); border-color: var(--student-line); color: #0c447c; }
+.whoami.staff { background: var(--staff-bg); border-color: var(--staff-line); color: #633806; }
+.whoami-tag { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; color: #fff; white-space: nowrap; }
+.whoami.student .whoami-tag { background: var(--student-line); }
+.whoami.staff .whoami-tag { background: var(--staff-line); }
+.whoami h1 { font-size: var(--fs-h2); font-weight: 700; margin: 0 0 2px; }
+.whoami p { font-size: var(--fs-sm); }
+.form-lead { color: var(--ink-2); font-size: var(--fs-sm); margin-bottom: var(--sp-4); }
+.q { padding: var(--sp-3) 0; border-bottom: 1px solid var(--line-soft); }
+.q-title { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-h3); font-weight: 600; margin-bottom: var(--sp-2); }
+.q-required { color: var(--danger); font-weight: 600; }
+.q-optional { color: var(--ink-3); font-size: var(--fs-xs); font-weight: 400; }
+.q-check { color: var(--ok-ink); font-weight: 700; }
+.q-hint { color: var(--ink-3); font-size: var(--fs-xs); margin-top: var(--sp-2); }
+.q-options { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.chip {
+  font: inherit; font-size: var(--fs-sm); cursor: pointer;
+  padding: var(--sp-2) var(--sp-4); border-radius: 999px;
+  border: 1px solid var(--line-ctrl); background: #fff; color: var(--ink-1);
+  transition: background-color .15s, border-color .15s;
+}
+.chip:hover:not(.chip-on) { background: var(--sp-1); border-color: var(--ink-2); }
+.chip:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.chip-on { background: var(--ok-bg); border-color: var(--ok-ink); color: var(--ok-ink); font-weight: 600; }
+.chip-no { background: #efefef; border-color: var(--ink-3); color: var(--ink-3); font-weight: 600; }
+.q-input {
+  width: 100%; font: inherit; padding: var(--sp-3); border-radius: var(--r-sm);
+  border: 1px solid var(--line-ctrl); background: #fff; color: var(--ink-1);
+}
+.q-input:focus { outline: 2px solid var(--ink-1); outline-offset: 0; border-color: var(--ink-1); }
+.q-missing .q-title { color: var(--danger); }
+.form-alert { background: var(--danger-bg); border: 1px solid var(--danger-line); color: var(--danger-ink); border-radius: var(--r-md); padding: var(--sp-3); margin-bottom: var(--sp-3); font-size: var(--fs-sm); }
+.btn-primary {
+  font: inherit; font-size: var(--fs-h3); font-weight: 600; cursor: pointer;
+  width: 100%; margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md); border: none; background: var(--ink-1); color: #fff;
+}
+.btn-primary:hover:not(:disabled) { background: #333; }
+.btn-primary:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.btn-primary:disabled { background: var(--ink-3); cursor: not-allowed; }
+.whoami-foot {
+  margin-top: var(--sp-4); padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-ctrl); border-radius: var(--r-md);
+  color: var(--ink-2); font-size: var(--fs-sm); background: #fafafa;
+}
+.done-card { text-align: center; padding: var(--sp-5) 0; }
+.done-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--ok-bg); color: var(--ok-ink); font-size: 28px; line-height: 56px; margin: 0 auto var(--sp-3); }
+.done-card p { color: var(--ink-2); margin-top: var(--sp-2); }
+.done-card .btn-primary { background: #fff; color: var(--ink-1); border: 1px solid var(--ink-1); }
+.qr-duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+.qr-card { border: 1px solid var(--r-md); border-radius: var(--r-md); overflow: hidden; }
+.qr-card.s { border-color: var(--student-line); }
+.qr-card.t { border-color: var(--staff-line); }
+.qr-cap { padding: var(--sp-2) var(--sp-3); color: #fff; font-size: var(--fs-sm); font-weight: 600; text-align: center; }
+.qr-card.s .qr-cap { background: var(--student-line); }
+.qr-card.t .qr-cap { background: var(--staff-line); }
+.qr-body { padding: var(--sp-3); text-align: center; background: #fff; }
+.qr-body svg { display: block; margin: 0 auto var(--sp-2); }
+.qr-body p { font-size: var(--fs-xs); color: var(--ink-3); word-break: break-all; }
+.qr-body button { font: inherit; font-size: var(--fs-xs); cursor: pointer; padding: var(--sp-1) var(--sp-3); border-radius: var(--r-sm); border: 1px solid var(--line-ctrl); background: #fff; margin-top: var(--sp-2); }
+.qr-body button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.toolbar { display: flex; gap: var(--sp-3); align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.toolbar label { font-size: var(--fs-sm); color: var(--ink-2); }
+.toolbar select, .toolbar input { font: inherit; font-size: var(--fs-sm); padding: var(--sp-2); border: 1px solid var(--line-ctrl); border-radius: var(--r-sm); background: #fff; }
+.toolbar button { font: inherit; font-size: var(--fs-sm); cursor: pointer; padding: var(--sp-2) var(--sp-4); border-radius: var(--r-md); border: 1px solid var(--ink-1); background: #fff; color: var(--ink-1); }
+.toolbar button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+caption { text-align: left; font-size: var(--fs-h3); font-weight: 700; padding-bottom: var(--sp-2); }
+th, td { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--line-soft); text-align: left; }
+th { font-weight: 600; color: var(--ink-2); font-size: var(--fs-xs); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.grp td { background: #f4f4f4; font-weight: 700; }
+tr.tot td { border-top: 2px solid var(--ink-1); font-weight: 700; }
+.zero { color: var(--ink-3); }
+.note { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-3); }
+@media print {
+  body { background: #fff; padding: 0; }
+  .demo-note, .tabbar, .toolbar, .whoami-foot, .qr-body button { display: none !important; }
+  .panel { box-shadow: none; border: 0; max-width: none; padding: 0; }
+  tr.grp td { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-note">
+  <strong>这是订餐功能的前端原型（静态演示）</strong>
+  能点、能填、能切换页面，但数据不会真的保存，也不会调接口 —— 目的是让你先看到界面长什么样、值不值得做。配色和字号沿用项目现有的 global.css 规范。
+</div>
+
+<div class="tabbar" role="tablist" aria-label="原型页面切换">
+  <button role="tab" aria-selected="true" data-panel="qr">① 生成二维码</button>
+  <button role="tab" aria-selected="false" data-panel="student">② 学生填表</button>
+  <button role="tab" aria-selected="false" data-panel="staff">③ 工作人员填表</button>
+  <button role="tab" aria-selected="false" data-panel="summary">④ 汇总表</button>
+</div>
+
+<!-- ① 组织者：生成两张码 -->
+<section class="panel" id="p-qr">
+  <h1 style="font-size:var(--fs-h1);font-weight:700;margin-bottom:var(--sp-2)">生成今天的二维码</h1>
+  <p class="form-lead">两张码长得完全不一样 —— 颜色不同、顶部标题不同、下载文件名也不同。贴出去之前先对一眼。</p>
+  <div class="toolbar">
+    <label for="date">日期</label>
+    <input type="date" id="date" value="2027-01-20">
+    <button type="button" id="gen">生成两张码</button>
+  </div>
+  <div class="qr-duo" id="qrduo" hidden>
+    <div class="qr-card s">
+      <div class="qr-cap">学生订餐 · 1/20</div>
+      <div class="qr-body">
+        <svg id="qrs" width="132" height="132" viewBox="0 0 33 33" shape-rendering="crispEdges"></svg>
+        <p>/meal?date=2027-01-20</p>
+        <button type="button" data-dl="学生订餐-2027-01-20.png">下载学生码</button>
+      </div>
+    </div>
+    <div class="qr-card t">
+      <div class="qr-cap">老师与创客订餐 · 1/20</div>
+      <div class="qr-body">
+        <svg id="qrt" width="132" height="132" viewBox="0 0 33 33" shape-rendering="crispEdges"></svg>
+        <p>/staff-meal?date=2027-01-20</p>
+        <button type="button" data-dl="老师与创客订餐-2027-01-20.png">下载工作人员码</button>
+      </div>
+    </div>
+  </div>
+  <p class="note">两张码都只对所选日期有效。换一天要重新生成、重新打印。</p>
+</section>
+
+<!-- ② 学生填表 -->
+<section class="panel" id="p-student" hidden>
+  <div id="s-view">
+    <div class="whoami student">
+      <span class="whoami-tag">学生</span>
+      <div>
+        <h1>学生订餐登记</h1>
+        <p>1 月 20 日 · 两道题一分钟填完</p>
+      </div>
+    </div>
+    <form id="s-form" novalidate>
+      <div id="s-alert"></div>
+      <div class="q" data-k="name">
+        <div class="q-title">你的名字是？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <input class="q-input" type="text" placeholder="请填写真实姓名" maxlength="50">
+      </div>
+      <div class="q" data-k="teacher">
+        <div class="q-title">你是哪位老师带的？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <div class="q" data-k="classLevel">
+        <div class="q-title">你在哪个班？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <div class="q" data-k="lunch">
+        <div class="q-title">今天中午订吗？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <div class="q" data-k="dinner">
+        <div class="q-title">今天晚上订吗？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <button class="btn-primary" type="submit">提交</button>
+    </form>
+    <div class="whoami-foot">如果你是<b>老师或创客</b>，请换一个二维码 —— 那边是单独填的，混在一起人数会算不准。</div>
+  </div>
+  <div id="s-done" hidden></div>
+</section>
+
+<!-- ③ 工作人员填表 -->
+<section class="panel" id="p-staff" hidden>
+  <div id="t-view">
+    <div class="whoami staff">
+      <span class="whoami-tag">工作人员</span>
+      <div>
+        <h1>老师与创客订餐</h1>
+        <p>1 月 20 日 · 不用填老师和班级</p>
+      </div>
+    </div>
+    <form id="t-form" novalidate>
+      <div id="t-alert"></div>
+      <div class="q" data-k="name">
+        <div class="q-title">你的名字是？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <input class="q-input" type="text" placeholder="请填写真实姓名" maxlength="50">
+      </div>
+      <div class="q" data-k="dept">
+        <div class="q-title">你在哪个部门？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <div class="q" data-k="lunch">
+        <div class="q-title">今天中午订吗？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <div class="q" data-k="dinner">
+        <div class="q-title">今天晚上订吗？<span class="q-required">*</span><span class="q-check" hidden>✓</span></div>
+        <div class="q-options"></div>
+      </div>
+      <button class="btn-primary" type="submit">提交</button>
+    </form>
+    <div class="whoami-foot">如果你是<b>学生</b>，请换一个二维码 —— 学生和工作人员是分开统计的。</div>
+  </div>
+  <div id="t-done" hidden></div>
+</section>
+
+<!-- ④ 汇总表 -->
+<section class="panel" id="p-summary" hidden>
+  <div class="toolbar">
+    <label for="day">日期</label>
+    <select id="day">
+      <option value="2027-01-20">1 月 20 日</option>
+      <option value="2027-01-21">1 月 21 日</option>
+    </select>
+    <button type="button" onclick="window.print()">打印</button>
+  </div>
+  <table id="sum">
+    <caption>1 月 20 日 订餐汇总</caption>
+    <thead>
+      <tr><th>分组</th><th class="num">午餐</th><th class="num">晚餐</th></tr>
+    </thead>
+    <tbody>
+      <tr class="grp"><td colspan="3">学生</td></tr>
+      <tr><td style="padding-left:24px">Mona 星一</td><td class="num">15</td><td class="num">12</td></tr>
+      <tr><td style="padding-left:24px">Mona 星二</td><td class="num">11</td><td class="num">11</td></tr>
+      <tr><td style="padding-left:24px">Mona 星三</td><td class="num">8</td><td class="num">8</td></tr>
+      <tr><td style="padding-left:24px">Kiven 星一</td><td class="num">12</td><td class="num">11</td></tr>
+      <tr><td style="padding-left:24px">Kiven 星二</td><td class="num">9</td><td class="num">9</td></tr>
+      <tr><td style="padding-left:24px">Kiven 星三</td><td class="num">6</td><td class="num">0</td></tr>
+      <tr><td style="padding-left:24px">Selena 星一</td><td class="num">10</td><td class="num">10</td></tr>
+      <tr><td style="padding-left:24px">Selena 星二</td><td class="num">7</td><td class="num">7</td></tr>
+      <tr><td style="padding-left:24px">Selena 星三</td><td class="num">5</td><td class="num">5</td></tr>
+      <tr><td style="padding-left:24px">Betty 星一</td><td class="num">13</td><td class="num">13</td></tr>
+      <tr><td style="padding-left:24px">Betty 星二</td><td class="num">10</td><td class="num">9</td></tr>
+      <tr><td style="padding-left:24px">Betty 星三</td><td class="num">9</td><td class="num">9</td></tr>
+      <tr><td style="padding-left:24px">Priya 星一</td><td class="num">7</td><td class="num">7</td></tr>
+      <tr><td style="padding-left:24px">Priya 星二</td><td class="num">4</td><td class="num">5</td></tr>
+      <tr><td style="padding-left:24px">Priya 星三</td><td class="num zero">0</td><td class="num zero">0</td></tr>
+      <tr class="grp"><td>学生小计</td><td class="num">128</td><td class="num">126</td></tr>
+
+      <tr class="grp"><td colspan="3">老师与创客</td></tr>
+      <tr><td style="padding-left:24px">教学部</td><td class="num">5</td><td class="num">5</td></tr>
+      <tr><td style="padding-left:24px">市场部</td><td class="num">2</td><td class="num">2</td></tr>
+      <tr><td style="padding-left:24px">其他部门</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr class="grp"><td>工作人员小计</td><td class="num">8</td><td class="num">8</td></tr>
+
+      <tr class="tot"><td>合计</td><td class="num">136</td><td class="num">134</td></tr>
+    </tbody>
+  </table>
+  <p class="note">学生和工作人员分两大块，中间分隔，永远不混在一个数里。15 个班和 3 个部门全部列出，没人的显示 0 —— 这样你能分清「今天没人订」和「这个班不存在」。</p>
+</section>
+
+<script>
+var TEACHERS = ['Mona','Kiven','Selena','Betty','Priya'];
+var CLASSES = ['星一','星二','星三'];
+var DEPTS = ['教学部','市场部','其他部门'];
+var YESNO = [{v:'1',l:'订'},{v:'0',l:'不订'}];
+
+// —— 切页
+var tabs = document.querySelectorAll('.tabbar button');
+tabs.forEach(function(t){ t.addEventListener('click', function(){
+  tabs.forEach(function(x){ x.setAttribute('aria-selected', String(x === t)); });
+  ['qr','student','staff','summary'].forEach(function(id){
+    document.getElementById('p-' + id).hidden = (id !== t.dataset.panel);
+  });
+});});
+
+// —— 表单通用逻辑
+function buildForm(formId, state, missing) {
+  var form = document.getElementById(formId);
+  form.querySelectorAll('.q').forEach(function(q){
+    var key = q.dataset.k;
+    var opts = q.querySelector('.q-options');
+    if (!opts) return;
+    var list = key === 'teacher' ? TEACHERS : key === 'classLevel' ? CLASSES : key === 'dept' ? DEPTS : YESNO;
+    list.forEach(function(o){
+      var val = typeof o === 'string' ? o : o.v;
+      var lab = typeof o === 'string' ? o : o.l;
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = lab;
+      b.addEventListener('click', function(){
+        state[key] = val;
+        opts.querySelectorAll('.chip').forEach(function(c){ c.className = 'chip'; });
+        b.className = 'chip ' + (val === '0' ? 'chip-no' : 'chip-on');
+        q.querySelector('.q-check').hidden = false;
+        missing = missing.filter(function(x){ return x !== key; });
+      });
+      opts.appendChild(b);
+    });
+  });
+  form.querySelector('.q[data-k=name] input').addEventListener('input', function(e){
+    state.name = e.target.value.trim();
+    e.target.closest('.q').querySelector('.q-check').hidden = !state.name;
+  });
+  return form;
+}
+function submit(formId, alertId, state, missing, viewId, doneId, roleText) {
+  document.getElementById(formId).addEventListener('submit', function(e){
+    e.preventDefault();
+    var lack = missing.filter(function(k){ return !state[k]; });
+    var box = document.getElementById(alertId);
+    if (lack.length) {
+      var names = {name:'名字', teacher:'老师', classLevel:'班级', dept:'部门', lunch:'中午订不订', dinner:'晚上订不订'};
+      box.innerHTML = '<div class="form-alert">还差 ' + lack.length + ' 项没填：' + lack.map(function(k){ return names[k]; }).join('、') + '</div>';
+      return;
+    }
+    box.innerHTML = '';
+    document.getElementById(viewId).hidden = true;
+    var d = document.getElementById(doneId);
+    d.hidden = false;
+    d.innerHTML = '<div class="done-card"><div class="done-icon">✓</div><h1>提交成功</h1>'
+      + '<p>今天的订餐已收到，1 月 20 日开饭前会公布。</p>'
+      + '<p class="q-hint">（演示：没有真的保存）</p>'
+      + '<button class="btn-primary" type="button" onclick="location.reload()">再填一次</button></div>';
+  });
+}
+var sState = {lunch:'', dinner:''}, sMiss = ['name','teacher','classLevel','lunch','dinner'];
+buildForm('s-form', sState, sMiss);
+submit('s-form','s-alert', sState, sMiss, 's-view','s-done');
+var tState = {lunch:'', dinner:''}, tMiss = ['name','dept','lunch','dinner'];
+buildForm('t-form', tState, tMiss);
+submit('t-form','t-alert', tState, tMiss, 't-view','t-done');
+
+// —— 假二维码：只画定位角 + 一堆随机点，视觉上像真码，但扫不出东西
+function fakeQR(svgEl, seed) {
+  var g = 'M0 0h7v7H0z M26 0h7v7h-7z M0 26h7v7H0z';
+  var inner = '';
+  var n = 0;
+  for (var y = 0; y < 33; y++) for (var x = 0; x < 33; x++) {
+    var inEye = (x < 8 && y < 8) || (x > 24 && y < 8) || (x < 8 && y > 24);
+    if (inEye) continue;
+    n = (n * 1103515245 + 12345 + seed) % 2147483648;
+    if (n % 100 < 46) inner += 'M' + x + ' ' + y + 'h1v1h-1z ';
+  }
+  svgEl.innerHTML = '<rect width="33" height="33" fill="#fff"/>'
+    + '<path d="' + g + ' M3 3h1v1h-1z M29 3h1v1h-1z M3 29h1v1h-1z" fill="#1f1f1f"/>'
+    + '<path d="' + inner + '" fill="#1f1f1f"/>';
+}
+document.getElementById('gen').addEventListener('click', function(){
+  fakeQR(document.getElementById('qrs'), 7);
+  fakeQR(document.getElementById('qrt'), 19);
+  document.getElementById('qrduo').hidden = false;
+});
+document.querySelectorAll('[data-dl]').forEach(function(b){
+  b.addEventListener('click', function(){ alert('演示：这里会下载「' + b.dataset.dl + '」'); });
+});
+</script>
+</body>
+</html>

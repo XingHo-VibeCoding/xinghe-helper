@@ -219,3 +219,28 @@ order by privilege_type;
 -- revoke insert, update on table public.students from anon;
 -- revoke insert on table public.assignment_history from anon;
 
+
+-- ============================================================
+-- 2026-10-18 追加：meal_orders（订餐表）的写权限
+-- ============================================================
+-- 【为什么开】
+--   订餐接口 POST /api/meals 上线后首次写入报 DB_ERROR ——
+--   与 Day 18 rooms、Day 20 students 一模一样的情况：新表只给了 SELECT，
+--   INSERT/UPDATE 没开。已通过 CLI 执行：
+--     grant select, insert, update on table public.meal_orders to anon;
+--
+-- 【为什么不开 DELETE】
+--   订餐没有「删除」接口 —— 重复提交是覆盖（同一人同一天只留一条，
+--   见 meal_orders 的判重索引），不需要的能力就不开权限。
+--
+-- 【⚠️ 安全提醒 · 与 students 同级敏感】
+--   anon 拿到接口链接即可提交订餐记录（姓名 + 部门/班级 + 两餐选择）。
+--   接入真实人员数据前必须：收回本段 GRANT + 接口改登录态校验。
+--   收回命令（届时执行）：
+--     revoke insert, update on table public.meal_orders from anon;
+--
+-- 【验证记录（2026-10-18 实测）】
+--   授权后六项测试全过：学生提交 ok / 重复提交 updated:true（同一 id）/
+--   工作人员提交 ok / 学生带部门 400 ROLE_FIELDS_MISMATCH /
+--   工作人员带老师 400 / 坏日期 400 INVALID_MEAL_DATE
+-- ============================================================

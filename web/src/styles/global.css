@@ -1691,3 +1691,192 @@ textarea.q-input {
   .sea-fish.sf-3 { left: 74%; }
   .sea-bubble { opacity: 0.35; }
 }
+
+/* ===== 订餐模块(meal)样式追加 =====
+ * 续写规则与文件头一致:颜色/字号/间距只用上面的变量,不手写新数值。
+ * 身份双色只用两处(蓝=学生 / 橙=工作人员),其余保持中性灰 ——
+ *   颜色是防混码的肉眼区分手段,不做装饰用色(方案文档 3.2 节)。
+ */
+
+/* 身份标头:告诉填表人「这个页面是给谁用的」;扫错码的人靠它当场发现 */
+.meal-whoami {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid;
+  border-radius: var(--r-md);
+  margin-bottom: var(--sp-4);
+}
+
+.meal-whoami h1 {
+  font-size: var(--fs-h2);
+  margin-bottom: var(--sp-1);
+}
+
+.meal-whoami p {
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+.meal-whoami-tag {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: 999px;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.meal-whoami-student {
+  background: #e6f1fb;
+  border-color: #378add;
+}
+
+.meal-whoami-student .meal-whoami-tag {
+  background: #378add;
+}
+
+.meal-whoami-staff {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+
+.meal-whoami-staff .meal-whoami-tag {
+  background: var(--warn-line);
+}
+
+/* 「不订」按钮:与「订」(chip-on 黑底)在视觉上分开,扫一眼能看出订没订 */
+.chip-no {
+  background: #f0f0f0;
+  color: var(--ink-3);
+}
+
+/* 身份反提示:即使扫错了码,这条也把人指回正确的码 */
+.meal-footnote {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-ctrl);
+  border-radius: var(--r-md);
+  background: #fafafa;
+  color: var(--ink-2);
+  font-size: var(--fs-sm);
+}
+
+/* ===== 二维码生成页(组织者) ===== */
+.meal-date-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.meal-date-row label {
+  font-size: var(--fs-sm);
+  color: var(--ink-2);
+}
+
+.meal-date-input {
+  width: auto;
+  min-width: 180px;
+}
+
+.qr-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+/* 窄屏(手机)两卡改上下排,不横向溢出 */
+@media (max-width: 640px) {
+  .qr-duo {
+    grid-template-columns: 1fr;
+  }
+}
+
+.meal-qr-card {
+  border: 1px solid;
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.meal-qr-card-student {
+  border-color: #378add;
+}
+
+.meal-qr-card-staff {
+  border-color: var(--warn-line);
+}
+
+/* 卡片标题栏:下载 PNG 时同样的文字会画进图片(见 MealQr.jsx) */
+.meal-qr-cap {
+  padding: var(--sp-2) var(--sp-3);
+  color: #ffffff;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-align: center;
+}
+
+.meal-qr-card-student .meal-qr-cap {
+  background: #378add;
+}
+
+.meal-qr-card-staff .meal-qr-cap {
+  background: var(--warn-line);
+}
+
+.meal-qr-body {
+  padding: var(--sp-3);
+  text-align: center;
+  background: #ffffff;
+}
+
+.meal-qr-body canvas {
+  display: block;
+  margin: 0 auto var(--sp-2);
+}
+
+.meal-qr-url {
+  font-size: var(--fs-xs);
+  color: var(--ink-3);
+  word-break: break-all;
+  margin-bottom: var(--sp-2);
+}
+
+.meal-qr-body .btn-plain {
+  font-size: var(--fs-xs);
+}
+
+/* ===== 汇总表 ===== */
+.meal-table {
+  margin-top: var(--sp-4);
+}
+
+/* 分组行(学生 / 老师与创客 / 两个小计):浅灰底,不与数据行混 */
+.meal-table .meal-grp td {
+  background: #f4f4f4;
+  font-weight: 600;
+}
+
+/* 二级行(具体班级/部门)缩进,层级一眼可辨 */
+.meal-table .meal-sub {
+  padding-left: var(--sp-6);
+}
+
+/* 0 值弱化:让「没人订」和「这个班不存在」都能被看出来(方案文档 5.2) */
+.meal-table .meal-zero {
+  color: var(--ink-3);
+}
+
+/* 合计行:加粗 + 上边框压住上面的分隔 */
+.meal-table .meal-tot td {
+  border-top: 2px solid var(--ink-1);
+  font-weight: 700;
+}
+
+/* 数字列右对齐 + 等宽数字,换日期时数字跳动不串位 */
+.meal-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
