@@ -28,9 +28,11 @@ function humanDate(iso) {
 // 标题画进图片里,是打印后唯一肉眼可辨的区分。
 function downloadQr(qrCanvas, { title, sub, color, filename }) {
   const size = qrCanvas.width
-  const pad = 16
+  const pad = 24 // 从 16 加大到 24,给彩色边框留位置
   const headH = 56
   const footH = 40
+  const frame = 8 // 彩色边框厚度
+  const frameGap = 6 // 边框与二维码之间的白色内衬
   const out = document.createElement('canvas')
   out.width = size + pad * 2
   out.height = size + pad * 2 + headH + footH
@@ -47,6 +49,25 @@ function downloadQr(qrCanvas, { title, sub, color, filename }) {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(title, out.width / 2, headH / 2)
+  // 彩色边框(2026-10-22 加):与标题栏同色 —— 标题是文字,离远了或没戴眼镜看不清;
+  //   边框是大色块,两张纸并排贴着,扫之前一眼就能分出蓝=学生、橙=老师创客。
+  //   这是防混码的强化层:标题栏(文字)+ 边框(颜色块) + 链接路径,三层冗余。
+  ctx.fillStyle = color
+  ctx.fillRect(
+    pad - frame - frameGap,
+    headH + pad - frame - frameGap,
+    size + (frame + frameGap) * 2,
+    size + (frame + frameGap) * 2,
+  )
+  // 白色内衬:彩色边框与二维码之间隔一段白 —— 二维码扫码要求四周留白(静区),
+  //   直接贴着色块印可能扫不出来,所以先铺白再放码。
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(
+    pad - frameGap,
+    headH + pad - frameGap,
+    size + frameGap * 2,
+    size + frameGap * 2,
+  )
   // 二维码
   ctx.drawImage(qrCanvas, pad, headH + pad)
   // 底部小字:链接与日期,便于核对

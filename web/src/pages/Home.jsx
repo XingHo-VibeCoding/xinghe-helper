@@ -25,6 +25,18 @@ const ENTRIES = [
     desc: '查看分房名单,一键导出打印,拿去对接酒店。',
     action: '看名单 →',
   },
+  {
+    to: '/meals/qr',
+    title: '订餐码',
+    desc: '生成当天的订餐二维码:学生一张、老师与创客一张,下载打印贴出去。',
+    action: '去生成 →',
+  },
+  {
+    to: '/meals/summary',
+    title: '订餐汇总',
+    desc: '按班级和部门看每天订了多少份午餐晚餐,打印拿去厨房。',
+    action: '看订餐 →',
+  },
 ]
 
 // 简笔小鱼已抽成共享组件 components/Fish.jsx,这里直接引用
